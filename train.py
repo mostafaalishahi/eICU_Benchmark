@@ -1,11 +1,11 @@
 # from models.data_reader import *
 # from models.models import *
+from config import Config
 import argparse
 # from models.data_reader import data_reader_decompensation as read_data
 # from models.models import network_decompensation as network
 from keras import backend as K
 import tensorflow as tf
-from config import Config
 from sklearn.model_selection import KFold
 import numpy as np
 from models import data_reader
@@ -149,6 +149,7 @@ def train_mort(config):
         aucprs_mort.append(average_precision_mort)
         mccs_mort.append(matthews_corrcoef(Y_test, probas_mort.round()))
         specat90_mort.append(1-fpr_mort[tpr_mort>=0.90][0])
+
     mean_tpr_mort = np.mean(tprs_mort, axis=0)
     mean_tpr_mort[-1] = 1.0
     mean_auc_mort = auc(mean_fpr_mort, mean_tpr_mort)
@@ -229,6 +230,8 @@ def main():
 
 
     config = Config()
+
+    np.random.seed(config.seed)
 
     if config.task == 'dec':
         train_dec(config)

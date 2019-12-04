@@ -5,6 +5,7 @@
 
 class Config():
     def __init__(self):
+        self.seed = 36
         self.root_dir = '/media/ehealth/HDD/ICU/DataSets/eICU/Benchmark/pyscript/data1'
         self.eicu_dir = '/media/ehealth/HDD/ICU/DataSets/eICU'
         self.model_dir = ''
