@@ -14,9 +14,174 @@ def dataframe_from_csv(path, header=0, index_col=False):
     return pd.read_csv(path, header=header, index_col=index_col)
 
 
+## Extract the root data
+
+#Extract data from patient table
+def read_patients_table(eicu_path, output_path):
+    pats = dataframe_from_csv(os.path.join(eicu_path, 'patient.csv'), index_col=False)
+    pats = filter_patients_on_age(pats, min_age=18, max_age=89)
+    pats = filter_one_unit_stay(pats)
+    pats = filter_patients_on_columns(pats)
+    pats.update(transform_gender(pats.gender))
+    pats.update(transform_ethnicity(pats.ethnicity))
+    pats.update(transform_hospital_discharge_status(pats.hospitaldischargestatus))
+    pats.update(transform_unit_discharge_status(pats.unitdischargestatus))
+    pats = transform_dx_into_id(pats)
+    pats.to_csv(os.path.join(output_path, 'all_stays.csv'), index=False)
+    pats = filter_patients_on_columns_model(pats)
+    return pats
+
+#Select unique patient id
+def cohort_stay_id(patients):
+    cohort = patients.patientunitstayid.unique()
+    return cohort
+
+#Write the selected cohort data from patient table into pat.csv for each patient
+def break_up_stays_by_unit_stay(pats, output_path, stayid=None, verbose=1):
+    unit_stays = pats.patientunitstayid.unique() if stayid is None else stayid
+    nb_unit_stays = unit_stays.shape[0]
+    for i, stay_id in enumerate(unit_stays):
+        if verbose:
+            sys.stdout.write('\rStayID {0} of {1}...'.format(i + 1, nb_unit_stays))
+        dn = os.path.join(output_path, str(stay_id))
+        try:
+            os.makedirs(dn)
+        except:
+            pass
+
+        pats.ix[pats.patientunitstayid == stay_id].sort_values(by='hospitaladmitoffset').to_csv(
+            os.path.join(dn, 'pats.csv'), index=False)
+    if verbose:
+        sys.stdout.write('DONE!\n')
 
 
-#Decompensation
+#extract the lab items for each patient
+def read_lab_table(eicu_path):
+    lab = dataframe_from_csv(os.path.join(eicu_path, 'lab.csv'), index_col=False)
+    items = ['bedside glucose', 'glucose', 'pH', 'FiO2']
+    lab = filter_lab_on_columns(lab)  
+    lab = rename_lab_columns(lab)
+    lab = item_name_selected_from_lab(lab, items)  
+    lab.loc[lab['itemname'] == 'bedside glucose', 'itemname'] = 'glucose'  # unify bedside glucose and glucose
+    lab = check_itemvalue(lab)
+    return lab
+
+
+#Write the available lab items of a patient into lab.csv 
+def break_up_lab_by_unit_stay(lab, output_path, stayid=None, verbose=1):
+    unit_stays = lab.patientunitstayid.unique() if stayid is None else stayid
+    nb_unit_stays = unit_stays.shape[0]
+    for i, stay_id in enumerate(unit_stays):
+        if verbose:
+            sys.stdout.write('\rStayID {0} of {1}...'.format(i + 1, nb_unit_stays))
+        dn = os.path.join(output_path, str(stay_id))
+        try:
+            os.makedirs(dn)
+        except:
+            pass
+        lab.ix[lab.patientunitstayid == stay_id].sort_values(by='itemoffset').to_csv(os.path.join(dn, 'lab.csv'),
+                                                                                     index=False)
+    if verbose:
+        sys.stdout.write('DONE!\n')
+
+
+#Select the nurseCharting items and save it into nc
+def read_nc_table(eicu_path):  
+    nc = dataframe_from_csv(os.path.join(eicu_path, 'nurseCharting.csv'), index_col=False)
+    nc = filter_nc_on_columns(nc)
+    nc = rename_nc_columns(nc)
+    typevallabel = ['Glasgow coma score', 'Heart Rate', 'O2 Saturation', 'Respiratory Rate', 'MAP (mmHg)',
+                    'Arterial Line MAP (mmHg)']
+    typevalname = ['Non-Invasive BP Systolic', 'Invasive BP Systolic', 'Non-Invasive BP Diastolic',
+                   'Invasive BP Diastolic', 'Temperature (C)', 'Temperature (F)']
+    nc = item_name_selected_from_nc(nc, typevallabel, typevalname)
+    nc = check_itemvalue(nc)  # (94316715, 4)
+    nc = conv_far_cel(nc)
+    replace_itemname_value(nc)
+    del nc['itemlabel']
+    return nc
+
+
+#Write the nc values of each patient into a nc.csv file
+def break_up_stays_by_unit_stay_nc(nursecharting, output_path, stayid=None, verbose=1):
+    unit_stays = nursecharting.patientunitstayid.unique() if stayid is None else stayid
+    nb_unit_stays = unit_stays.shape[0]
+    for i, stay_id in enumerate(unit_stays):
+        if verbose:
+            sys.stdout.write('\rStayID {0} of {1}...'.format(i + 1, nb_unit_stays))
+        dn = os.path.join(output_path, str(stay_id))
+        try:
+            os.makedirs(dn)
+        except:
+            pass
+
+        nursecharting.ix[nursecharting.patientunitstayid == stay_id].sort_values(by='itemoffset').to_csv(
+            os.path.join(dn, 'nc.csv'), index=False)
+    if verbose:
+        sys.stdout.write('DONE!\n')
+
+
+# Write the time-series data into one csv for each patient
+def extract_time_series_from_subject(t_path):
+    for stay_dir in os.listdir(t_path):
+        dn = os.path.join(t_path, stay_dir)
+        try:
+            stay_id = int(stay_dir)
+            if not os.path.isdir(dn):
+                raise Exception
+        except:
+            continue
+        try:
+            pat = dataframe_from_csv(os.path.join(t_path, stay_dir, 'pats.csv'))
+            lab = dataframe_from_csv(os.path.join(t_path, stay_dir, 'lab.csv'))
+            nc = dataframe_from_csv(os.path.join(t_path, stay_dir, 'nc.csv'))
+            nclab = pd.concat([nc, lab]).sort_values(by=['itemoffset'])
+            timeepisode = convert_events_to_timeseries(nclab, variables=var_to_consider)
+            nclabpat = pd.merge(timeepisode, pat, on='patientunitstayid')
+            df = binning(nclabpat, 60)
+            df = imputer(df, strategy='normal')
+            if 15 <= df.shape[0] <= 200:
+                df = check_in_range(df)
+                df.to_csv(os.path.join(t_path, stay_dir, 'timeseries.csv'), index=False)
+                sys.stdout.write('\rWrite StayID {0}...'.format(stay_id))
+            else:
+                continue
+        except:
+            continue
+    print('DONE')
+
+
+#Delete folders without timeseries file
+def delete_wo_timeseries(t_path):
+    for stay_dir in os.listdir(t_path):
+        dn = os.path.join(t_path, stay_dir)
+        try:
+            stay_id = int(stay_dir)
+            if not os.path.isdir(dn):
+                raise Exception
+        except:
+            continue
+        try:
+            sys.stdout.flush()
+            if not os.path.isfile(os.path.join(dn, 'timeseries.csv')):
+                shutil.rmtree(dn)
+        except:
+            continue
+    print('DONE')
+
+#Write all the extracted data into one csv file
+def all_df_into_one_df(output_path):
+    all_filenames = []
+    unit_stays = pd.Series(os.listdir(output_path))
+    unit_stays = list((filter(str.isdigit, unit_stays)))
+    for stay_id in (unit_stays):
+        df_file = os.path.join(output_path, str(stay_id), 'timeseries.csv')
+        all_filenames.append(df_file)
+
+    combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
+    combined_csv.to_csv(os.path.join(output_path, 'all_data.csv'), index=False)
+
+#Convert categorical variables into number from 0 to 429
 def prepare_categorical_variables(root_dir):
     columns_ord = [ 'patientunitstayid', 'itemoffset',
     'Eyes', 'Motor', 'GCS Total', 'Verbal',
@@ -56,6 +221,7 @@ def prepare_categorical_variables(root_dir):
     all_df['Verbal'] = all_df['Verbal'] +dxmax+etmax+gemax+totmax+eyemax+motmax
     return all_df
 
+#Decompensation
 def filter_decom_data(all_df):
     dec_cols = ['patientunitstayid', 'itemoffset', 'apacheadmissiondx', 'ethnicity', 'gender',
     'GCS Total', 'Eyes', 'Motor', 'Verbal',
