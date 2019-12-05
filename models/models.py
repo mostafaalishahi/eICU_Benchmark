@@ -8,7 +8,6 @@ import json
 import pandas as pd
 import numpy as np
 import random
-import matplotlib.pyplot as plt
 import keras
 import tensorflow as tf
 import keras.backend as K
@@ -157,11 +156,11 @@ def network_phenotyping(input_size, catg_len=429, embedding_dim=5, numerical=Tru
 
     mask = Masking(mask_value=0.,name="maski")(inp)
 
-    # lstm1 = Bidirectional(LSTM(units=50,kernel_initializer='glorot_normal' ,name= "1stl",return_sequences=True))(mask)
-    # lstm1 = BatchNormalization()(lstm1)
-    # lstm1 = Dropout(0.2)(lstm1)
+    lstm1 = Bidirectional(LSTM(units=50,kernel_initializer='glorot_normal' ,name= "1stl",return_sequences=True))(mask)
+    lstm1 = BatchNormalization()(lstm1)
+    lstm1 = Dropout(0.2)(lstm1)
 
-    lstm2 = Bidirectional(LSTM(units=50,kernel_initializer='glorot_normal' ,name= "3rdl",return_sequences=False))(mask)
+    lstm2 = Bidirectional(LSTM(units=50,kernel_initializer='glorot_normal' ,name= "3rdl",return_sequences=False))(lstm1)
     lstm2 = BatchNormalization()(lstm2)
     lstm2 = Dropout(0.2)(lstm2)
 
