@@ -11,7 +11,7 @@ import numpy as np
 from models import data_reader
 from sklearn.metrics import roc_curve, auc,confusion_matrix,average_precision_score,matthews_corrcoef
 from scipy import interp
-
+from models import evaluation
 
 import sys
 
@@ -60,8 +60,6 @@ def train_dec(config):
 
         probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
         probas_dec = np.squeeze(probas_dec,axis=-1)
-        import pdb
-        pdb.set_trace()
         fpr_dec, tpr_dec, thresholds = roc_curve(Y_test, probas_dec)
         tprs_dec.append(interp(mean_fpr_dec, fpr_dec, tpr_dec))
         tprs_dec[-1][0] = 0.0
@@ -135,6 +133,7 @@ def train_mort(config):
                             epochs=config.epochs,verbose=1,shuffle=True)
 
         probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        
         fpr_mort, tpr_mort, thresholds = roc_curve(Y_test, probas_mort)
         tprs_mort.append(interp(mean_fpr_mort, fpr_mort, tpr_mort))
         tprs_mort[-1][0] = 0.0
@@ -143,6 +142,7 @@ def train_mort(config):
         TN,FP,FN,TP = confusion_matrix(Y_test,probas_mort.round()).ravel()
         PPV = TP/(TP+FP)
         NPV = TN/(TN+FN)
+
         ppvs_mort.append(PPV)
         npvs_mort.append(NPV)
         average_precision_mort = average_precision_score(Y_test,probas_mort)
@@ -176,7 +176,7 @@ def train_phen(config):
     # import pdb
     # pdb.set_trace()
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
-
+    macro_auc_phen = []
     skf = KFold(n_splits=5)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
@@ -191,18 +191,25 @@ def train_phen(config):
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
+        
+        probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        macro_auc = multi_label_metrics(Y_test,probas_phen)
+        macro_auc_phen.append(macro_auc)
 
+# Remaining length of stay
 
-#Remaining length of stay
 def train_rlos(config):
-    from models.models import network_decompensation as network
+    from models.models import network_los as network
     from data_extraction.utils import normalize_data_rlos as normalize_data
     from data_extraction.data_extraction_rlos import data_extraction_rlos
     df_data = data_extraction_rlos(config)
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
 
+    r2s= []
+    mses = []
+    maes = []
     skf = KFold(n_splits=5)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
@@ -213,13 +220,30 @@ def train_rlos(config):
         train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
 
         model = network(max_time_step, numerical=config.num, categorical=config.cat)
-        model.summary()
+        # model.summary()
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
 
-        
-        #auc / roc --> test:
+        probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        r2,mse,mae = evaluation.regression_metrics(Y_test,probas_rlos)
+        r2s.append(r2)
+        mses.append(mse)
+        maes.append(mae)
+
+    meanr2s = np.mean(r2s)
+    meanmses = np.mean(mses)
+    meanmaes = np.mean(maes)
+
+    stdr2s = np.std(r2s)
+    stdmses = np.std(mses)
+    stdmaes = np.std(maes)
+
+
+    print("===========================RLOS=============================")
+    print("R2 total: {0:0.3f} +- {1:0.3f} ".format(meanr2s,stdr2s))
+    print("MSE total: {0:0.3f}  +- {1:0.3f}".format(meanmses,stdmses))
+    print("MAE total:{0:0.3f}  +- {1:0.3f}".format(meanmaes,stdmaes))
 
 
 def main():

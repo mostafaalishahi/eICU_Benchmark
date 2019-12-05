@@ -9,13 +9,11 @@ from data_extraction import utils
 from config import Config
 
 def data_extraction_mortality(args):
-    time_window=48
+    time_window = 48
     all_df = utils.embedding(args.root_dir)
     all_mort = utils.filter_mortality_data(all_df)
     all_mort = all_mort[all_mort['itemoffset']<=time_window]
-
     return all_mort
-
 
 def main():
     config = Config()
@@ -23,3 +21,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
