@@ -12,7 +12,6 @@ from models import data_reader
 from sklearn.metrics import roc_curve, auc,confusion_matrix,average_precision_score,matthews_corrcoef
 from scipy import interp
 from models import evaluation
-
 import sys
 
 if not sys.warnoptions:
@@ -86,15 +85,6 @@ def train_dec(config):
     print("MCC: {0:0.3f}".format(np.mean(mccs_dec)))
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_dec)))
 
-        # [test_file['X_noncat'], test_file['X_cat']
-
-        #Y_pred = model.evaluate
-
-        #pass to Roc curve function
-
-        #add to list
-    
-    #print average
 
 #Mortality
 def train_mort(config):
@@ -167,6 +157,7 @@ def train_mort(config):
 
 #Phenotyping
 def train_phen(config):
+    import numpy as np
     from models.models import network_phenotyping as network
     from data_extraction.utils import normalize_data_phe as normalize_data
     from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping
@@ -176,7 +167,11 @@ def train_phen(config):
     # import pdb
     # pdb.set_trace()
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
-    macro_auc_phen = []
+   
+    macro_auc = []
+    phen_aucs = np.zeros((5,25))
+    phen_auc = np.zeros((1,25))
+
     skf = KFold(n_splits=5)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
@@ -193,8 +188,12 @@ def train_phen(config):
                             epochs=config.epochs,verbose=1,shuffle=True)
         
         probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        macro_auc = multi_label_metrics(Y_test,probas_phen)
-        macro_auc_phen.append(macro_auc)
+        macro_auc,phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
+        macro_auc.append(macro_auc)
+
+        phens = np.concatenate((phen_auc,phen_aucs))
+    phens = np.mean(phens,axis=0)
+    print("phens",phens)
 
 # Remaining length of stay
 
