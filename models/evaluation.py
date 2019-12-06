@@ -44,10 +44,10 @@ def multi_label_metrics(true_label,pred_label):
     phen_auc = []
     for i in range(n_classes):
         phen_auc.append(roc_auc[i])
-    macro_auc = roc_auc["macro"]
+    # macro_auc = roc_auc["macro"]
     # micro_auc = roc_auc['micro']
 
-    return macro_auc,phen_auc
+    return phen_auc
 
 def print_classification_metrics(true_label,pred_label):
     cm = confusion_matrix(true_label, pred_label.round())

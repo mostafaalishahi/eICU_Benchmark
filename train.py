@@ -168,8 +168,8 @@ def train_phen(config):
     # pdb.set_trace()
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
    
-    macro_auc = []
-    phen_aucs = np.zeros((5,25))
+    # macro_auc = []
+    # phen_aucs = np.zeros((5,25))
     phen_auc = np.zeros((1,25))
 
     skf = KFold(n_splits=5)
@@ -182,14 +182,15 @@ def train_phen(config):
         train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_phe(config, train, test, batch_size=1024, val=False)
 
         model = network(max_time_step, numerical=config.num, categorical=config.cat)
-        model.summary()
+        # model.summary()
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
         
         probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        macro_auc,phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
-        macro_auc.append(macro_auc)
+        import pdb
+        pdb.set_trace()
+        phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
 
         phens = np.concatenate((phen_auc,phen_aucs))
     phens = np.mean(phens,axis=0)
