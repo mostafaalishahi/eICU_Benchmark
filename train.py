@@ -170,8 +170,9 @@ def train_phen(config):
    
     # macro_auc = []
     # phen_aucs = np.zeros((5,25))
-    phen_auc = np.zeros((1,25))
-
+    # phen_auc = np.zeros((1,25))
+    phen_auc  = []
+    phen_aucs = []
     skf = KFold(n_splits=5)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
@@ -192,9 +193,10 @@ def train_phen(config):
         pdb.set_trace()
         phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
 
-        phens = np.concatenate((phen_auc,phen_aucs))
-    phens = np.mean(phens,axis=0)
-    print("phens",phens)
+        # phens = np.concatenate((phen_auc,phen_aucs),axis=0)
+    phen_aucs.append(phen_auc)
+    # phens = np.mean(phens,axis=0)
+    print("phens",phen_aucs)
 
 # Remaining length of stay
 
