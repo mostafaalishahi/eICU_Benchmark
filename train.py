@@ -173,7 +173,7 @@ def train_phen(config):
     # phen_auc = np.zeros((1,25))
     phen_auc  = []
     phen_aucs = []
-    skf = KFold(n_splits=2)
+    skf = KFold(n_splits=5)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
@@ -189,17 +189,11 @@ def train_phen(config):
                             epochs=config.epochs,verbose=1,shuffle=True)
         
         probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        # import pdb
-        # pdb.set_trace()
         phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
-
-        # phens = np.concatenate((phen_auc,phen_aucs),axis=0)
-    phen_aucs.append(phen_auc)
-    import pdb
-    pdb.set_trace()
-    # phens = np.mean(phens,axis=0)
+        phen_aucs.append(phen_auc)
+    aucs = np.mean(np.array(phen_aucs),axis=0)
     for i in range(len(config.col_phe)):
-        print("{0} : {1}".format(config.col_phe[i],phen_aucs[i]))
+        print("{0} : {1:0.3f}".format(config.col_phe[i],aucs[i]))
 
 # Remaining length of stay
 
