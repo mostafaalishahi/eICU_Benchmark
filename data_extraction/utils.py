@@ -264,7 +264,6 @@ def df_to_list(df):
     grp_df  = df.groupby('patientunitstayid')
     df_arr = []
     for idx, frame in grp_df:
-        # idts.append(idx)
         df_arr.append(frame)
     
     return df_arr
@@ -272,16 +271,37 @@ def df_to_list(df):
 
 def normalize_data_dec(config, data, train_idx, test_idx, cat=True, num=True):
     col_used = ['patientunitstayid']
-    if cat:
+
+    if num and cat:
        col_used += config.dec_cat 
-    if num:
        col_used += config.dec_num
+       train = data[data['patientunitstayid'].isin(train_idx)]
+       test  = data[data['patientunitstayid'].isin(test_idx)]
+       col_used += ['unitdischargestatus']
+       data = data[col_used]
+    elif num and not cat:
+        col_used += config.dec_num
+        train = data[data['patientunitstayid'].isin(train_idx)]
+        test  = data[data['patientunitstayid'].isin(test_idx)]
+        col_used += ['unitdischargestatus']
+        data = data[col_used]
+    elif not num and cat:
+        col_used += config.dec_cat
+        train = data[data['patientunitstayid'].isin(train_idx)]
+        test  = data[data['patientunitstayid'].isin(test_idx)]
+        col_used += ['unitdischargestatus']
+        data = data[col_used]
+        train = df_to_list(train)
+        test = df_to_list(test)
+        train, nrows_train = pad(train)
+        test, nrows_test = pad(test)
+        return (train, nrows_train), (test, nrows_test)
+
     col_used += ['unitdischargestatus']
 
     data = data[col_used]
 
-    train = data[data['patientunitstayid'].isin(train_idx)]
-    test = data[data['patientunitstayid'].isin(test_idx)]
+    
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
        'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']
@@ -338,17 +358,33 @@ def filter_mortality_data(all_df):
 
 
 def normalize_data_mort(config, data, train_idx, test_idx, cat=True, num=True):
+
     col_used = ['patientunitstayid']
-    if cat:
-       col_used += config.dec_cat 
-    if num:
-       col_used += config.dec_num
-    col_used += ['hospitaldischargestatus']
+    if num and cat:
+        col_used += config.dec_cat 
+        col_used += config.dec_num
+        train = data[data['patientunitstayid'].isin(train_idx)]
+        test  = data[data['patientunitstayid'].isin(test_idx)]
+        col_used += ['hospitaldischargestatus']
+        data = data[col_used]
+    elif num and not cat:
+        col_used += config.dec_num
+        train = data[data['patientunitstayid'].isin(train_idx)]
+        test  = data[data['patientunitstayid'].isin(test_idx)]
+        col_used += ['hospitaldischargestatus']
+        data = data[col_used]
+    elif not num and cat:
+        col_used += config.dec_cat
+        train = data[data['patientunitstayid'].isin(train_idx)]
+        test  = data[data['patientunitstayid'].isin(test_idx)]
+        col_used += ['hospitaldischargestatus']
+        data = data[col_used]
+        train = df_to_list(train)
+        test = df_to_list(test)
+        train, nrows_train = pad(train)
+        test, nrows_test = pad(test)
+        return (train, nrows_train), (test, nrows_test)
 
-    data = data[col_used]
-
-    train = data[data['patientunitstayid'].isin(train_idx)]
-    test = data[data['patientunitstayid'].isin(test_idx)]
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
        'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']
@@ -373,16 +409,24 @@ def normalize_data_mort(config, data, train_idx, test_idx, cat=True, num=True):
 # Phenotyping
 def normalize_data_phe(config, data, train_idx, test_idx, cat=True, num=True):
     col_used = ['patientunitstayid']
-    if cat:
-       col_used += config.dec_cat 
-    if num:
-       col_used += config.dec_num
-    col_used += config.col_phe
-
-    data = data[col_used]
-
     train = data[data['patientunitstayid'].isin(train_idx)]
-    test = data[data['patientunitstayid'].isin(test_idx)]
+    test  = data[data['patientunitstayid'].isin(test_idx)]
+    if num and cat:
+        col_used += config.dec_cat 
+        col_used += config.dec_num
+        data = data[col_used]
+    elif num and not cat:
+        col_used += config.dec_num
+        data = data[col_used]
+    elif not num and cat:
+        col_used += config.dec_cat
+        data = data[col_used]
+        train = df_to_list(train)
+        test = df_to_list(test)
+        train, nrows_train = pad(train)
+        test, nrows_test = pad(test)
+        return (train, nrows_train), (test, nrows_test)
+        
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
        'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']
@@ -408,10 +452,16 @@ def filter_phenotyping_data(all_df):
     all_df = all_df[all_df.gender != 0]
     all_df = all_df[all_df.hospitaldischargestatus!=2]
     all_df['RLOS'] = np.nan
+    phen_cols = ['patientunitstayid', 'itemoffset', 'apacheadmissiondx', 'ethnicity','gender',
+                'GCS Total', 'Eyes', 'Motor', 'Verbal',
+                'admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
+                'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
+                'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH','RLOS']
     all_df['unitdischargeoffset'] = all_df['unitdischargeoffset'] / (1440)
     all_df['itemoffsetday'] = (all_df['itemoffset'] / 24)
     all_df['RLOS'] = (all_df['unitdischargeoffset'] - all_df['itemoffsetday'])
     all_df.drop(columns='itemoffsetday', inplace=True)
+    all_df = all_df[phen_cols]
     return all_df
 
 
@@ -513,16 +563,27 @@ def filter_rlos_data(all_df):
 
 def normalize_data_rlos(config, data, train_idx, test_idx, cat=True, num=True):
     col_used = ['patientunitstayid']
-    if cat:
-       col_used += config.dec_cat 
-    if num:
-       col_used += config.dec_num
-    col_used += ['RLOS']
-
-    data = data[col_used]
-
     train = data[data['patientunitstayid'].isin(train_idx)]
-    test = data[data['patientunitstayid'].isin(test_idx)]
+    test  = data[data['patientunitstayid'].isin(test_idx)]
+
+    if num and cat:
+        col_used += config.dec_cat 
+        col_used += config.dec_num
+        col_used += ['RLOS']
+        data = data[col_used]
+    elif num and not cat:
+        col_used += config.dec_num
+        col_used += ['RLOS']
+        data = data[col_used]
+    elif not num and cat:
+        col_used += config.dec_cat
+        col_used += ['RLOS']
+        data = data[col_used]
+        train = df_to_list(train)
+        test = df_to_list(test)
+        train, nrows_train = pad(train)
+        test, nrows_test = pad(test)
+        return (train, nrows_train), (test, nrows_test)
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
        'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']

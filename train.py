@@ -23,6 +23,7 @@ def train_dec(config):
     from data_extraction.data_extraction_decompensation import data_extraction_decompensation
     df_data = data_extraction_decompensation(config)
 
+
     cvscores_dec = []
     tprs_dec = []
     aucs_dec = []
@@ -40,23 +41,27 @@ def train_dec(config):
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
-
-        train, test = normalize_data(config, df_data,train_idx, test_idx, cat=True, num=True)
-
-        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
-        # import pdb
-        # pdb.set_trace()
+        if config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif config.num and not config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif not config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         model = network(200, numerical=config.num, categorical=config.cat)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
+        if config.num and config.cat:
+            probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.num and not config.cat:
+            probas_dec = model.predict([X_test])
+        elif not config.num and config.cat:
+            probas_dec = model.predict([X_test])
 
-        probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
         Y_test, probas_dec = evaluation.decompensation_metrics(Y_test,probas_dec,max_time_step_test)
-        # probas_dec = np.squeeze(probas_dec,axis=-1)
-        # import pdb
-        # pdb.set_trace()
-        # Y_test = np.squeeze(Y_test,axis=-1)
         fpr_dec, tpr_dec, thresholds = roc_curve(Y_test, probas_dec)
         tprs_dec.append(interp(mean_fpr_dec, fpr_dec, tpr_dec))
         tprs_dec[-1][0] = 0.0
@@ -86,7 +91,6 @@ def train_dec(config):
 
 #Mortality
 def train_mort(config):
-    
     cvscores_mort = []
     tprs_mort = []
     aucs_mort = []
@@ -110,16 +114,28 @@ def train_mort(config):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
-        train, test = normalize_data(config, df_data,train_idx, test_idx, cat=True, num=True)
-
-        train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_mort(train, test, batch_size=1024, val=False)
-
-        model = network(max_time_step, numerical=config.num, categorical=config.cat)
+        if config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif config.num and not config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif not config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        
+        model = network(input_size=200, numerical=config.num, categorical=config.cat)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
+        
+        if config.num and config.cat:
+            probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.num and not config.cat:
+            probas_mort = model.predict([X_test])
+        elif not config.num and config.cat:
+            probas_mort = model.predict([X_test])
 
-        probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
         
         fpr_mort, tpr_mort, thresholds = roc_curve(Y_test, probas_mort)
         tprs_mort.append(interp(mean_fpr_mort, fpr_mort, tpr_mort))
@@ -150,7 +166,6 @@ def train_mort(config):
     print("MCC: {0:0.3f}".format(np.mean(mccs_mort)))
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_mort)))
         
-        #auc / roc --> test:
 
 #Phenotyping
 def train_phen(config):
@@ -160,26 +175,36 @@ def train_phen(config):
     from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping
     df_data, df_label = data_extraction_phenotyping(config)
     df_data = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
-
-    all_idx = np.array(list(df_data['patientunitstayid'].unique()))
+    all_idx = np.array(list(df_data['patientunitstayid'].unique()))   
    
     phen_auc  = []
     phen_aucs = []
-    skf = KFold(n_splits=5)
+    skf = KFold(n_splits=2)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
-        train, test = normalize_data(config, df_data, train_idx, test_idx, cat=True, num=True)
-
-        train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_phe(config, train, test, batch_size=1024, val=False)
-
-        model = network(max_time_step, numerical=config.num, categorical=config.cat)
-
+        if config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_phe(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif config.num and not config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_phe(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif not config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_phe(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        
+        model = network(200, numerical=config.num, categorical=config.cat)
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
-        
-        probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+
+        if config.num and config.cat:
+            probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.num and not config.cat:
+            probas_phen = model.predict([X_test])
+        elif not config.num and config.cat:
+            probas_phen = model.predict([X_test])
+
         phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
         phen_aucs.append(phen_auc)
     aucs = np.mean(np.array(phen_aucs),axis=0)
@@ -193,28 +218,35 @@ def train_rlos(config):
     from data_extraction.utils import normalize_data_rlos as normalize_data
     from data_extraction.data_extraction_rlos import data_extraction_rlos
     df_data = data_extraction_rlos(config)
-    # import pdb
-    # pdb.set_trace()
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
 
     r2s= []
     mses = []
     maes = []
-    skf = KFold(n_splits=5)
+    skf = KFold(n_splits=2)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
-
-        train, test = normalize_data(config, df_data,train_idx, test_idx, cat=True, num=True)
-
-        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
-
+        if config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_rlos(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif config.num and not config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_rlos(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        elif not config.num and config.cat:
+            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_rlos(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        
         model = network(200, numerical=config.num, categorical=config.cat)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
-
-        probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        if config.num and config.cat:
+            probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.num and not config.cat:
+            probas_rlos = model.predict([X_test])
+        elif not config.num and config.cat:
+            probas_rlos = model.predict([X_test])
         r2,mse,mae = evaluation.regression_metrics(Y_test,probas_rlos,max_time_step_test)
         r2s.append(r2)
         mses.append(mse)

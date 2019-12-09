@@ -28,5 +28,5 @@ class Config():
                     "Cardiac dysrhythmias",
                     "CHF", "DM with complications", "Other liver diseases", "Conduction disorders"]
 
-        self.task = 'dec' #['phen', 'dec', 'mort', 'rlos']
+        self.task = 'rlos' #['phen', 'dec', 'mort', 'rlos']
      
