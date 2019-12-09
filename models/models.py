@@ -200,10 +200,10 @@ def network_decompensation(input_size, catg_len=429, embedding_dim=5, numerical=
     lstm1 = Bidirectional(LSTM(units=128, name= "lstm1",kernel_initializer='glorot_normal',return_sequences=True))(mask) 
     lstm1 = Dropout(0.3)(lstm1)
 
-    lstm2 = LSTM(units=128, name= "lstm2",kernel_initializer='glorot_normal',return_sequences=True)(lstm1) 
+    lstm2 = LSTM(units=64, name= "lstm2",kernel_initializer='glorot_normal',return_sequences=True)(lstm1) 
     lstm2 = Dropout(0.2)(lstm2)
 
-    lstm3 = LSTM(units=128, name= "lstm3",kernel_initializer='glorot_normal',return_sequences=True)(lstm2) 
+    lstm3 = LSTM(units=32, name= "lstm3",kernel_initializer='glorot_normal',return_sequences=True)(lstm2) 
     lstm3 = Dropout(0.2)(lstm3)
 
     out = TimeDistributed(Dense(1,activation="sigmoid"))(lstm3)

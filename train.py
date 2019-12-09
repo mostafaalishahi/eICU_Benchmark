@@ -1,9 +1,5 @@
-# from models.data_reader import *
-# from models.models import *
 from config import Config
 import argparse
-# from models.data_reader import data_reader_decompensation as read_data
-# from models.models import network_decompensation as network
 from keras import backend as K
 import tensorflow as tf
 from sklearn.model_selection import KFold
@@ -19,7 +15,6 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 
-#Define method for ROC curve:
 
 #Decompensation
 def train_dec(config):
@@ -41,24 +36,27 @@ def train_dec(config):
 
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
 
-    skf = KFold(n_splits=5)
+    skf = KFold(n_splits=2)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
         train, test = normalize_data(config, df_data,train_idx, test_idx, cat=True, num=True)
 
-        train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
+        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
         # import pdb
         # pdb.set_trace()
-        model = network(max_time_step, numerical=config.num, categorical=config.cat)
-        model.summary()
+        model = network(200, numerical=config.num, categorical=config.cat)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
 
         probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        probas_dec = np.squeeze(probas_dec,axis=-1)
+        Y_test, probas_dec = evaluation.decompensation_metrics(Y_test,probas_dec,max_time_step_test)
+        # probas_dec = np.squeeze(probas_dec,axis=-1)
+        # import pdb
+        # pdb.set_trace()
+        # Y_test = np.squeeze(Y_test,axis=-1)
         fpr_dec, tpr_dec, thresholds = roc_curve(Y_test, probas_dec)
         tprs_dec.append(interp(mean_fpr_dec, fpr_dec, tpr_dec))
         tprs_dec[-1][0] = 0.0
@@ -77,7 +75,7 @@ def train_dec(config):
     mean_tpr_dec[-1] = 1.0
     mean_auc_dec = auc(mean_fpr_dec, mean_tpr_dec)
     std_auc_dec = np.std(aucs_dec)
-    print("========================")
+    print("====================Decompensation================")
     print("Mean AUC{0:0.3f} +- STD{1:0.3f}".format(mean_auc_dec,std_auc_dec))
     print("PPV: {0:0.3f}".format(np.mean(ppvs_dec)))
     print("NPV: {0:0.3f}".format(np.mean(npvs_dec)))
@@ -106,7 +104,7 @@ def train_mort(config):
 
     df_data = data_extraction_mortality(config)
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
-    skf = KFold(n_splits=5)
+    skf = KFold(n_splits=2)
 
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
@@ -117,7 +115,6 @@ def train_mort(config):
         train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_mort(train, test, batch_size=1024, val=False)
 
         model = network(max_time_step, numerical=config.num, categorical=config.cat)
-        # model.summary()
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
@@ -164,13 +161,8 @@ def train_phen(config):
     df_data, df_label = data_extraction_phenotyping(config)
     df_data = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
 
-    # import pdb
-    # pdb.set_trace()
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
    
-    # macro_auc = []
-    # phen_aucs = np.zeros((5,25))
-    # phen_auc = np.zeros((1,25))
     phen_auc  = []
     phen_aucs = []
     skf = KFold(n_splits=5)
@@ -183,7 +175,6 @@ def train_phen(config):
         train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_phe(config, train, test, batch_size=1024, val=False)
 
         model = network(max_time_step, numerical=config.num, categorical=config.cat)
-        # model.summary()
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
@@ -216,16 +207,15 @@ def train_rlos(config):
 
         train, test = normalize_data(config, df_data,train_idx, test_idx, cat=True, num=True)
 
-        train_gen, train_steps, (X_test, Y_test), max_time_step = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
+        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(train, test, batch_size=1024, val=False)
 
-        model = network(max_time_step, numerical=config.num, categorical=config.cat)
-        # model.summary()
+        model = network(200, numerical=config.num, categorical=config.cat)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
 
         probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        r2,mse,mae = evaluation.regression_metrics(Y_test,probas_rlos)
+        r2,mse,mae = evaluation.regression_metrics(Y_test,probas_rlos,max_time_step_test)
         r2s.append(r2)
         mses.append(mse)
         maes.append(mae)

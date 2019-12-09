@@ -87,6 +87,8 @@ def data_reader_for_model_dec(train, test, batch_size=1024, val=False):
 
     nrows_train = train[1]
     nrows_test = test[1]
+    # import pdb
+    # pdb.set_trace()
 
     X_train = train[0][:, :, 1:-1] #column 0 is patient_id
     Y_train = train[0][:, :, -1]
@@ -112,7 +114,7 @@ def data_reader_for_model_dec(train, test, batch_size=1024, val=False):
         val_gen   = batch_generator(X_val, Y_val, batch_size=batch_size, train=False,phen=False)
         val_steps = np.ceil(len(X_val)/batch_size)
 
-    max_time_step = X_train.shape[1]
+    max_time_step = nrows_test
     if val:
         return train_gen, train_steps, val_gen, val_steps, (X_test, Y_test), max_time_step
 

@@ -94,3 +94,23 @@ def regression_metrics(true_label,pred_label,ts=None):
     mae = mean_absolute_error(true_stay, pred_stay)
     print("R2 : {0:f}, MSE : {1:f}, MAE:{2:f}".format(r2,mse,mae))
     return r2,mse,mae
+
+def decompensation_metrics(true_label,pred_label,ts=None):
+    errors = []
+    true_stay = []
+    pred_stay = []
+    if ts is None:
+        for i,(a,b) in enumerate(zip(np.squeeze(true_label), np.squeeze(pred_label))):
+            l = np.squeeze(a).argmin()#nrows_ts[i]
+            true_stay += list(a[:l])
+            pred_stay += list(b[:l])
+            e =  b[:l] - a[:l]
+            errors += list(e)
+    else:
+        for i,(a,b) in enumerate(zip(np.squeeze(true_label), np.squeeze(pred_label))):
+            l = ts[i]#nrows_ts[i]
+            true_stay += list(a[:l])
+            pred_stay += list(b[:l])
+            e =  b[:l] - a[:l]
+            errors += list(e)
+    return np.array(true_stay),np.array(pred_stay)

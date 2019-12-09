@@ -9,9 +9,9 @@ class Config():
         self.root_dir = '/media/ehealth/HDD/ICU/DataSets/eICU/Benchmark/pyscript/data1'
         self.eicu_dir = '/media/ehealth/HDD/ICU/DataSets/eICU'
         self.model_dir = ''
-        self.num = True
+        self.num = False
         self.cat = True
-        self.epochs = 100
+        self.epochs = 1
 
         self.dec_cat = ['apacheadmissiondx', 'ethnicity', 'gender', 'GCS Total', 'Eyes', 'Motor', 'Verbal']
         self.dec_num = ['admissionheight', 'admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)','Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
@@ -28,5 +28,5 @@ class Config():
                     "Cardiac dysrhythmias",
                     "CHF", "DM with complications", "Other liver diseases", "Conduction disorders"]
 
-        self.task = 'phen' #['phen', 'dec', 'mort', 'rlos']
+        self.task = 'dec' #['phen', 'dec', 'mort', 'rlos']
      
