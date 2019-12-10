@@ -44,24 +44,29 @@ def get_optimizer(lr=0.0005):
     adam = optimizers.Adam(lr=lr)
     return adam
 
-def network_mortality(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True):
+def network_mortality(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True, ohe=False):
     if numerical and categorical:
-        input1 = Input(shape=(input_size, 13))
-
-        input2 = Input(shape=(input_size, 7))
-        x2 = Embedding(catg_len, embedding_dim)(input2)
-        x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
-
-        inp = keras.layers.Concatenate(axis=-1)([input1, x2])
-    
+        if ohe:
+            input1 = Input(shape=(input_size, 13))
+            input2 = Input(shape=(input_size, 429))
+            inp = keras.layers.Concatenate(axis=-1)([input1, input2])
+        else:
+            input1 = Input(shape=(input_size, 13))
+            input2 = Input(shape=(input_size, 7))
+            x2 = Embedding(catg_len, embedding_dim)(input2)
+            x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
+            inp = keras.layers.Concatenate(axis=-1)([input1, x2])
     elif numerical:
         input1 = Input(shape=(input_size, 13))
-        inp = input1
-    
+        inp = input1 
     elif categorical:
-        input1 = Input(shape=(input_size, 7))
-        x1 = Embedding(catg_len, embedding_dim)(input1)
-        inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
+        if ohe:
+            input1 = Input(shape=(input_size, 7))
+            inp = Reshape((int(input1.shape[1]),int(input1.shape[2]*input1.shape[3])))(input1)
+        else:
+            input1 = Input(shape=(input_size, 7))
+            x1 = Embedding(catg_len, embedding_dim)(input1)
+            inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
 
     mask = Masking(mask_value=0.,name="maski")(inp)
 
@@ -92,41 +97,49 @@ def network_mortality(input_size, catg_len=429, embedding_dim=5, numerical=True,
 
 def network_los(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True):
     if numerical and categorical:
-        input1 = Input(shape=(input_size, 13))
+          if ohe:
+            input1 = Input(shape=(input_size, 13))
+            input2 = Input(shape=(input_size, 429))
+            inp = keras.layers.Concatenate(axis=-1)([input1, input2])
+        else:
+            input1 = Input(shape=(input_size, 13))
+            input2 = Input(shape=(input_size, 7))
+            x2 = Embedding(catg_len, embedding_dim)(input2)
+            x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
+            inp = keras.layers.Concatenate(axis=-1)([input1, x2])
 
-        input2 = Input(shape=(input_size, 7))
-        x2 = Embedding(catg_len, embedding_dim)(input2)
-        x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
-
-        inp = keras.layers.Concatenate(axis=-1)([input1, x2])
+        # input1 = Input(shape=(input_size, 13))
+        # input2 = Input(shape=(input_size, 7))
+        # x2 = Embedding(catg_len, embedding_dim)(input2)
+        # x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
+        # inp = keras.layers.Concatenate(axis=-1)([input1, x2])
     
     elif numerical:
         input1 = Input(shape=(input_size, 13))
         inp = input1
     
     elif categorical:
-        input1 = Input(shape=(input_size, 7))
-        x1 = Embedding(catg_len, embedding_dim)(input1)
-        inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
+        if ohe:
+            input1 = Input(shape=(input_size, 429))
+            inp = Reshape((int(input1.shape[1]),int(input1.shape[2]*input1.shape[3])))(input1)
+        else:
+            input1 = Input(shape=(input_size, 7))
+            x1 = Embedding(catg_len, embedding_dim)(input1)
+            inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
 
     mask = Masking(mask_value=0.,name="maski")(inp)
-
     lstm1 = Bidirectional(LSTM(units=128, name= "lstm1",kernel_initializer='glorot_normal',return_sequences=True))(mask) 
     lstm1 = Dropout(0.3)(lstm1)
-
     lstm2 = LSTM(units=128, name= "lstm2",kernel_initializer='glorot_normal',return_sequences=True)(lstm1) 
     lstm2 = Dropout(0.2)(lstm2)
-
     lstm3 = LSTM(units=128, name= "lstm3",kernel_initializer='glorot_normal',return_sequences=True)(lstm2) 
     lstm3 = Dropout(0.2)(lstm3)
-
     out = TimeDistributed(Dense(1,activation="relu"))(lstm3)
 
     if numerical and categorical:
         model = keras.models.Model(inputs=[input1, input2], outputs=out)
     else:
-        model = keras.models.Model(inputs=input1, outputs=out)
-        
+        model = keras.models.Model(inputs=input1, outputs=out)   
     adam = get_optimizer(lr=0.005)
     
     model.compile(loss='mean_squared_error', optimizer=adam, metrics=['mse'])

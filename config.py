@@ -11,7 +11,7 @@ class Config():
         self.model_dir = ''
         self.num = True
         self.cat = True
-        self.epochs = 1
+        self.epochs = 10
         self.ann = True
         self.ohe = True
         self.mort_window = 24

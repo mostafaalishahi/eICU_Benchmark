@@ -111,7 +111,7 @@ def train_mort(config):
     skf = KFold(n_splits=2)
 
     for train_idx, test_idx in skf.split(all_idx):
-        train_idx = all_idx[train_idx]
+        train_idx = all_idx[train_idx]  
         test_idx = all_idx[test_idx]
 
         if config.num and config.cat:
@@ -124,13 +124,22 @@ def train_mort(config):
             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         
-        model = network(input_size=config.mort_window, numerical=config.num, categorical=config.cat)
+        model = network(input_size=config.mort_window, numerical=config.num, categorical=config.cat,ohe=config.ohe)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
         
         if config.num and config.cat:
-            probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+             if config.ohe:
+                x_cat = X_test[:, :, :7].astype(int)
+                x_nc = X_test[:,:,7:]
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
+                print("Please wait, One-hot encoding ...")
+                probas_mort = model.predict([x_nc, x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
         elif config.num and not config.cat:
             probas_mort = model.predict([X_test])
         elif not config.num and config.cat:

@@ -195,10 +195,9 @@ def mort(config):
         
         if config.num and config.cat:
             if config.ohe:
-                # import pdb
-                # pdb.set_trace()
                 x_cat = X_test[:, :, :7].astype(int)
                 x_nc = X_test[:,:,7:]
+                print("Please wait, One-hot encoding ...")
                 one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
                 x_cat = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
                 probas_mort = model.predict([x_nc, x_cat])
