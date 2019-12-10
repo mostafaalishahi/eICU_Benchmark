@@ -6,20 +6,37 @@
 class Config():
     def __init__(self):
         self.seed = 36
+
+        # data dir
         self.root_dir = '/media/ehealth/HDD/ICU/DataSets/eICU/Benchmark/pyscript/data1'
         self.eicu_dir = '/media/ehealth/HDD/ICU/DataSets/eICU'
-        self.model_dir = ''
         self.num = True
-        self.cat = True
+        self.cat = True        
+        self.n_cat_class = 429
+
+        # task to execute
+        self.task = 'mort' #['phen', 'dec', 'mort', 'rlos']
+
+        #model params
+        self.model_dir = ''
+        self.embedding_dim = 5
         self.epochs = 10
         self.ann = True
         self.ohe = True
         self.mort_window = 24
+        self.lr = 0.0001
+        self.dropout = 0.3
+        self.rnn_layers = 2
+        self.rnn_units = [64, 64]
+
+
+        # decompensation
         self.dec_cat = ['apacheadmissiondx', 'ethnicity', 'gender', 'GCS Total', 'Eyes', 'Motor', 'Verbal']
         self.dec_num = ['admissionheight', 'admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)','Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
         'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']
 
 
+        #phenotyping
         self.col_phe = ["Respiratory failure", "Fluid disorders",
                     "Septicemia", "Acute and unspecified renal failure", "Pneumonia",
                     "Acute cerebrovascular disease",
@@ -29,6 +46,4 @@ class Config():
                     "lipid disorder", "Coronary athe", "DM without complication",
                     "Cardiac dysrhythmias",
                     "CHF", "DM with complications", "Other liver diseases", "Conduction disorders"]
-
-        self.task = 'mort' #['phen', 'dec', 'mort', 'rlos']
      
