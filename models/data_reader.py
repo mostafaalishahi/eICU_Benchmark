@@ -4,7 +4,7 @@ from config import Config
 
 config = Config()
 
-def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), numerical=config.num, categorical=config.cat, train=True,phen=True):
+def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), numerical=config.num, categorical=config.cat, train=True,phen=True,ohe=config.ohe):
         if train:
             while True:
                 # data = list(zip(X, Y))
@@ -27,7 +27,13 @@ def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), 
                     
                     if numerical and categorical:
                         x_nc = x_batch[:, :, 7:]
-                        x_cat = x_batch[:,:, :7]
+                        x_cat = x_batch[:,:, :7].astype(int)
+                        # import pdb
+                        # pdb.set_trace()
+                        if ohe:
+                            one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                            one_hot = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
+                            x_cat = one_hot
                         yield [x_nc, x_cat], y_batch
                     
                     else:
@@ -213,13 +219,13 @@ def data_reader_for_model_mort(config,train, test, numerical=config.num, categor
     Y_test = Y_test.astype(int)
     X_train = np.array(X_train)
     if numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=True, batch_size=batch_size, train=True,phen=False)
+        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=True, batch_size=batch_size, train=True,phen=False,ohe=config.ohe)
         train_steps = np.ceil(len(X_train)/batch_size)
     if numerical and not categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=False, batch_size=batch_size, train=True,phen=False)
+        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=False, batch_size=batch_size, train=True,phen=False,ohe=config.ohe)
         train_steps = np.ceil(len(X_train)/batch_size)
     if not numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=False,categorical=True, batch_size=batch_size, train=True,phen=False)
+        train_gen = batch_generator(config,X_train, Y_train,numerical=False,categorical=True, batch_size=batch_size, train=True,phen=False,ohe=config.ohe)
         train_steps = np.ceil(len(X_train)/batch_size)
     if val:
         Y_val = Y_val.astype(int)        

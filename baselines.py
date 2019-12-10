@@ -49,13 +49,18 @@ def specificity(y_true, y_pred):
     return true_negatives / (possible_negatives + K.epsilon())
 #####################################################################################################
 
-def base_mort(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True,ann=False):
+def base_mort(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True,ann=False,ohe=False):
     if numerical and categorical:
-        input1 = Input(shape=(input_size, 13))
-        input2 = Input(shape=(input_size, 7))
-        x2 = Embedding(catg_len, embedding_dim)(input2)
-        x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
-        inp = keras.layers.Concatenate(axis=-1)([input1, x2])
+        if ohe:
+            input1 = Input(shape=(input_size, 13))
+            input2 = Input(shape=(input_size, 429))
+            inp = keras.layers.Concatenate(axis=-1)([input1, input2])
+        else:
+            input1 = Input(shape=(input_size, 13))
+            input2 = Input(shape=(input_size, 7))
+            x2 = Embedding(catg_len, embedding_dim)(input2)
+            x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
+            inp = keras.layers.Concatenate(axis=-1)([input1, x2])
     elif numerical:
         input1 = Input(shape=(input_size, 13))
         inp = input1
@@ -63,7 +68,10 @@ def base_mort(input_size, catg_len=429, embedding_dim=5, numerical=True, categor
         input1 = Input(shape=(input_size, 7))
         x1 = Embedding(catg_len, embedding_dim)(input1)
         inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
-    mask = Reshape((int(x2.shape[1])*int(x2.shape[2]+input1.shape[2]),))(inp)
+    if ohe:
+        mask = Reshape((int(input2.shape[1])*int(input2.shape[2]+input1.shape[2]),))(inp)
+    else:
+        mask = Reshape((int(x2.shape[1])*int(x2.shape[2]+input1.shape[2]),))(inp)
     if ann:
         mask = keras.layers.Dense(64,activation='relu')(mask)
     out = keras.layers.Dense(1,activation="sigmoid")(mask)
@@ -102,13 +110,16 @@ def base_rlos(input_size, catg_len=429, embedding_dim=5, numerical=True, categor
     model.compile(loss='mean_squared_error', optimizer=adam, metrics=['mse'])
     return model
 
-def base_dec(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True,ann=False):
+def base_dec(input_size, catg_len=429, embedding_dim=5, numerical=True, categorical=True,ann=False,ohe=False):
     if numerical and categorical:
         input1 = Input(shape=(input_size, 13))
         input2 = Input(shape=(input_size, 7))
-        x2 = Embedding(catg_len, embedding_dim)(input2)
-        x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
-        inp = keras.layers.Concatenate(axis=-1)([input1, x2])
+        if ohe:
+            inp = keras.layers.Concatenate(axis=-1)([input1, x2])
+        else:
+            x2 = Embedding(catg_len, embedding_dim)(input2)
+            x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
+            inp = keras.layers.Concatenate(axis=-1)([input1, x2])
     elif numerical:
         input1 = Input(shape=(input_size, 13))
         inp = input1
@@ -161,7 +172,7 @@ def mort(config):
 
     df_data = data_extraction_mortality(config)
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
-    skf = KFold(n_splits=5)
+    skf = KFold(n_splits=2)
 
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
@@ -177,13 +188,23 @@ def mort(config):
             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         
-        model = base_mort(input_size=200, numerical=config.num, categorical=config.cat,ann=config.ann)
+        model = base_mort(input_size=200, numerical=config.num, categorical=config.cat,ann=config.ann,ohe=config.ohe)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
         
         if config.num and config.cat:
-            probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+            if config.ohe:
+                # import pdb
+                # pdb.set_trace()
+                x_cat = X_test[:, :, :7].astype(int)
+                x_nc = X_test[:,:,7:]
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
+                probas_mort = model.predict([x_nc, x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
         elif config.num and not config.cat:
             probas_mort = model.predict([X_test])
         elif not config.num and config.cat:
