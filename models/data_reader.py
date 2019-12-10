@@ -179,8 +179,8 @@ def data_reader_for_model_mort(config,train, test, numerical=config.num, categor
     nrows_test = test[1]
 
     if numerical and categorical:
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step, last col is mort label, 2nd to last is los
         X_test = test[0][:, :, 2:-2]
 

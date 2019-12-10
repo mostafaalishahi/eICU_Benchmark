@@ -124,7 +124,7 @@ def train_mort(config):
             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         
-        model = network(input_size=200, numerical=config.num, categorical=config.cat)
+        model = network(input_size=config.mort_window, numerical=config.num, categorical=config.cat)
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
