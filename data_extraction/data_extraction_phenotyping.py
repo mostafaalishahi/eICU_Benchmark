@@ -67,7 +67,7 @@ def data_extraction_phenotyping(args):
     
     label = label[diag_ord_col]
     all_pheno_label = label[label.patientunitstayid.isin(list(all_pheno.patientunitstayid.unique()))]
-    return all_pheno,all_pheno_label
+    return all_pheno, all_pheno_label
 
 
 def main():

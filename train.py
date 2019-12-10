@@ -5,30 +5,123 @@ import tensorflow as tf
 from sklearn.model_selection import KFold
 import numpy as np
 from models import data_reader
-from sklearn.metrics import roc_curve, auc,confusion_matrix,average_precision_score,matthews_corrcoef
+from sklearn.metrics import roc_curve, auc,confusion_matrix, average_precision_score, matthews_corrcoef
 from scipy import interp
 from models import evaluation
 import sys
+from models.models import build_network as network
 
 if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+# def get_tpr_auc_spec(y_true, y_pred, mean_fpr_dec=np.linspace(0, 1, 100)):
+        
+#     fpr_dec, tpr_dec, thresholds = roc_curve(y_true, y_pred)
+    
+#     tprs_dec.append(interp(mean_fpr_dec, fpr_dec, tpr_dec))
+#     tprs_dec[-1][0] = 0.0
+    
+#     roc_auc_dec = auc(fpr_dec, tpr_dec)
+#     spec = 1-fpr_dec[tpr_dec>=0.90][0]
 
-# Common train method for all tasks
-def train(config, model_type='lstm'):
+#     return tprs_dec, roc_auc_dec, spec
 
-    return True
+# def get_PPV_NPV(y_true, y_pred):
+#     TN,FP,FN,TP = confusion_matrix(y_true, y_pred.round()).ravel()
+#     PPV = TP/(TP+FP)
+#     NPV = TN/(TN+FN)
+    
+#     return PPV, NPV
 
+# # Common train method for all tasks
+# def train(config, model_type='lstm'):
+    
+#     metrics_ = {}
 
+#     inp_sh = 200    
+#     if config.task == 'dec':
+#         from data_extraction.utils import normalize_data_dec as normalize_data
+#         from data_extraction.data_extraction_decompensation import data_extraction_decompensation as extract_data
+#         out_dim = 1
+#         activa = 'sigmoid'
+#     elif config.task == 'phe':
+#         from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping as extract_data
+#         from data_extraction.utils import normalize_data_phe as normalize_data     
+#         out_dim = 25
+#         activa = 'sigmoid'        
+#     elif config.task == 'mort':
+#         from data_extraction.data_extraction_mortality import data_extraction_mortality as extract_data
+#         from data_extraction.utils import normalize_data_mort as normalize_data
+#         inp_sh = config.mort_window
+#         out_dim = 1
+#         activa = 'sigmoid'        
+#     elif config.task == 'rlos':
+#         from data_extraction.data_extraction_rlos import data_extraction_rlos as extract_data
+#         from data_extraction.utils import normalize_data_rlos as normalize_data
+#         out_dim = 1
+#         activa = 'relu'
+
+#     df_data = extract_data(config)
+#     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
+
+#     skf = KFold(n_splits=config.k_fold)
+
+#     for train_idx, test_idx in skf.split(all_idx):
+#         train_idx = all_idx[train_idx]  
+#         test_idx = all_idx[test_idx]
+#         if config.num and config.cat:
+#             train, test = normalize_data(config, df_data, train_idx, test_idx, cat=config.cat, num=config.num)
+#             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+#         elif config.num and not config.cat:
+#             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+#             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+#         elif not config.num and config.cat:
+#             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+#             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        
+#         model = network(config, inp_sh, output_dim=out_dim, activation=activa)
+
+#         history = model.fit_generator(train_gen,steps_per_epoch=25,
+#                             epochs=config.epochs,verbose=1,shuffle=True)
+        
+#         if config.num and config.cat:
+#             probas_dec = model.predict([X_test[:,:,7:], X_test[:,:,:7]])
+#         else :
+#             probas_dec = model.predict([X_test])
+
+#         if config.task == 'dec':
+#             Y_test, probas_dec = evaluation.decompensation_metrics(Y_test, probas_dec, max_time_step_test)
+
+#         if config.task == 'phen':
+#             phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)   
+#             metrics_['phen_auc'] = metrics_.get('phen_auc', []).append(phen_auc)
+
+#         elif config.task=='rlos':
+#             r2, mse, mae = evaluation.regression_metrics(Y_test,probas_rlos,max_time_step_test)
+#             metrics_['r2'] = metrics_.get('r2', []).append(phen_auc)
+#             metrics_['mse'] = metrics_.get('mse', []).append(phen_auc)
+#             metrics_['mae'] = metrics_.get('mae', []).append(phen_auc)
+#         else:                
+#             tprs_dec, roc_auc_dec, spec = get_tpr_auc_spec(Y_test, probas_dec)
+#             PPV, NPV = get_PPV_NPV(Y_test, probas_dec)
+#             average_precision_dec = average_precision_score(Y_test, probas_dec)
+#             mat_coref = matthews_corrcoef(Y_test, probas_dec.round())
+#             metrics_['tprs_dec'] = metrics_.get('tprs_dec', []).append(phen_auc)
+#             metrics_['roc_auc_dec'] = metrics_.get('roc_auc_dec', []).append(phen_auc)
+#             metrics_['spec'] = metrics_.get('spec', []).append(phen_auc)
+#             metrics_['PPV'] = metrics_.get('PPV', []).append(phen_auc) 
+#             metrics_['NPV'] = metrics_.get('NPV', []).append(phen_auc) 
+#             metrics_['average_precision_dec'] = metrics_.get('average_precision_dec', []).append(phen_auc)
+#             metrics_['mat_coref'] = metrics_.get('mat_coref', []).append(phen_auc)            
+
+#     return metrics_
 
 #Decompensation
 def train_dec(config):
-    from models.models import network_decompensation as network
     from data_extraction.utils import normalize_data_dec as normalize_data
     from data_extraction.data_extraction_decompensation import data_extraction_decompensation
     df_data = data_extraction_decompensation(config)
-
 
     cvscores_dec = []
     tprs_dec = []
@@ -56,6 +149,7 @@ def train_dec(config):
         elif not config.num and config.cat:
             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+        
         model = network(config, 200, output_dim=1, activation='sigmoid')
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
@@ -68,20 +162,25 @@ def train_dec(config):
             probas_dec = model.predict([X_test])
 
         Y_test, probas_dec = evaluation.decompensation_metrics(Y_test,probas_dec,max_time_step_test)
+        
         fpr_dec, tpr_dec, thresholds = roc_curve(Y_test, probas_dec)
+        specat90_dec.append(1-fpr_dec[tpr_dec>=0.90][0])
         tprs_dec.append(interp(mean_fpr_dec, fpr_dec, tpr_dec))
         tprs_dec[-1][0] = 0.0
         roc_auc_dec = auc(fpr_dec, tpr_dec)
         aucs_dec.append(roc_auc_dec)
-        TN,FP,FN,TP = confusion_matrix(Y_test,probas_dec.round()).ravel()
+        
+        TN,FP,FN,TP = confusion_matrix(Y_test, probas_dec.round()).ravel()
         PPV = TP/(TP+FP)
         NPV = TN/(TN+FN)
         ppvs_dec.append(PPV)
         npvs_dec.append(NPV)
-        average_precision_dec = average_precision_score(Y_test,probas_dec)
+        
+        average_precision_dec = average_precision_score(Y_test, probas_dec)
         aucprs_dec.append(average_precision_dec)
+        
         mccs_dec.append(matthews_corrcoef(Y_test, probas_dec.round()))
-        specat90_dec.append(1-fpr_dec[tpr_dec>=0.90][0])
+    
     mean_tpr_dec = np.mean(tprs_dec, axis=0)
     mean_tpr_dec[-1] = 1.0
     mean_auc_dec = auc(mean_fpr_dec, mean_tpr_dec)
@@ -108,7 +207,6 @@ def train_mort(config):
     mccs_mort = []
     specat90_mort = []
 
-    from models.models import network_mortality as network
     from data_extraction.data_extraction_mortality import data_extraction_mortality
     from data_extraction.utils import normalize_data_mort as normalize_data
 
@@ -184,8 +282,6 @@ def train_mort(config):
 
 #Phenotyping
 def train_phen(config):
-    import numpy as np
-    from models.models import network_phenotyping as network
     from data_extraction.utils import normalize_data_phe as normalize_data
     from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping
     df_data, df_label = data_extraction_phenotyping(config)
@@ -229,7 +325,6 @@ def train_phen(config):
 # Remaining length of stay
 
 def train_rlos(config):
-    from models.models import network_los as network
     from data_extraction.utils import normalize_data_rlos as normalize_data
     from data_extraction.data_extraction_rlos import data_extraction_rlos
     df_data = data_extraction_rlos(config)

@@ -10,17 +10,20 @@ class Config():
         # data dir
         self.root_dir = '/media/ehealth/HDD/ICU/DataSets/eICU/Benchmark/pyscript/data1'
         self.eicu_dir = '/media/ehealth/HDD/ICU/DataSets/eICU'
+
+        # task details
+        self.task = 'mort' #['phen', 'dec', 'mort', 'rlos']
         self.num = True
         self.cat = True        
-        self.n_cat_class = 429
+        self.n_cat_class = 429        
 
-        # task to execute
-        self.task = 'mort' #['phen', 'dec', 'mort', 'rlos']
-
+        self.k_fold = 5
         #model params
         self.model_dir = ''
         self.embedding_dim = 5
         self.epochs = 10
+        self.batch_size = 512
+
         self.ann = True
         self.ohe = True
         self.mort_window = 24

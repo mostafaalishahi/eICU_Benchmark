@@ -4,7 +4,7 @@ from config import Config
 
 config = Config()
 
-def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), numerical=config.num, categorical=config.cat, train=True,phen=True,ohe=config.ohe):
+def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0), train=True, phen=True):
         if train:
             while True:
                 # data = list(zip(X, Y))
@@ -25,12 +25,10 @@ def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), 
                     if not phen:
                         y_batch = np.expand_dims(y_batch, axis=-1)
                     
-                    if numerical and categorical:
+                    if config.num and config.cat:
                         x_nc = x_batch[:, :, 7:]
                         x_cat = x_batch[:,:, :7].astype(int)
-                        # import pdb
-                        # pdb.set_trace()
-                        if ohe:
+                        if config.ohe:
                             one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
                             one_hot = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
                             x_cat = one_hot
@@ -49,7 +47,7 @@ def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), 
                     st_idx = i
                     end_idx = st_idx + batch_size
 
-                    if numerical and categorical:
+                    if config.num and config.cat:
                         x_nc = X[:, :, 7:]
                         x_cat = X[:, :, :7]
                         yield [x_nc[st_idx:end_idx], x_cat[st_idx:end_idx]], Y[st_idx:end_idx]
@@ -57,237 +55,50 @@ def batch_generator(config,X, Y, batch_size=1024, rng=np.random.RandomState(0), 
                         yield X[st_idx:end_idx], Y[st_idx:end_idx]
 
 
-def data_reader_for_model_phe(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False):
+def data_reader_for_all(config, train, test, val=False):
     nrows_train = train[1]
     nrows_test = test[1]
 
-    if numerical and categorical:
-        # import pdb
-        # pdb.set_trace()
-        X_train = train[0][:, :, 2:-len(config.col_phe)] #column 0 is patient_id and column 1 is time step,last columns are labels
-        X_test = test[0][:, :, 2:-len(config.col_phe)]
-        X_train = X_train[:,:,:-1] # last column is length of stay
-        X_test = X_test[:,:,:-1] 
-        # import pdb
-        # pdb.set_trace()
+    if config.task == 'phe':
+        n_labels = len(config.col_phe)
+    elif config.task in ['dec', 'mort', 'rlos']:
+        n_labels = 1
 
-    elif numerical and not categorical:
-        X_train = train[0][:, :, 2:-len(config.col_phe)] #column 0 is patient_id and column 1 is time step,last columns are labels
-        X_test = test[0][:, :, 2:-len(config.col_phe)]
-        X_train = X_train[:,:,:-1] # last column is length of stay
-        X_test = X_test[:,:,:-1] 
-        X_train = X_train[:,:,7:]
-        X_test = X_test[:,:,7:]
+    X_train = train[0][:, :, 1:-n_labels] #column 0 is patient_id
+    X_test = test[0][:, :, 1:-n_labels]
 
-    elif not numerical and categorical:
-        X_train = train[0][:, :, 2:-len(config.col_phe)] #column 0 is patient_id and column 1 is time step,last columns are labels
-        X_test = test[0][:, :, 2:-len(config.col_phe)]
+    if config.num and config.cat:        
         X_train = X_train[:,:,:-1]
         X_test = X_test[:,:,:-1]
+
+    elif config.num:
+        X_train = X_train[:,:,7:-1] 
+        X_test = X_test[:,:,7:-1]
+
+    elif config.cat:
         X_train = X_train[:,:,0:7]
-        X_test = X_test[:,:,0:7]
-    
-    Y_train = train[0][:, 0, -len(config.col_phe):]
-    Y_test = test[0][:, 0, -len(config.col_phe):]
+        X_test = X_test[:,:,0:7]    
+
+    Y_train = train[0][:, 0, -n_labels:]
+    Y_test = test[0][:, 0, -n_labels:]    
     X_train = list(zip(X_train, nrows_train))
-   
+
     if val:
         (X_train, Y_train), (X_val, Y_val) = train_test_split(X_train, Y_train, split_size=0.2)        
         X_val, nrows_val = zip(*X_val)
-    
+
     X_train, nrows_train = zip(*X_train)
     Y_train = Y_train.astype(int)
     Y_test = Y_test.astype(int)
     X_train = np.array(X_train)
 
-    if numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=True, batch_size=batch_size, train=True,phen=True)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if numerical and not categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=False, batch_size=batch_size, train=True,phen=True)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if not numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=False,categorical=True, batch_size=batch_size, train=True,phen=True)
-        train_steps = np.ceil(len(X_train)/batch_size)
+    train_gen = batch_generator(config, X_train, Y_train, batch_size=config.batch_size, train=True, phen=True)
+    train_steps = np.ceil(len(X_train)/config.batch_size)
 
     if val:
         Y_val = Y_val.astype(int)        
-        val_gen   = batch_generator(X_val, Y_val, batch_size=batch_size, train=False,phen=True)
-        val_steps = np.ceil(len(X_val)/batch_size)
-
-    max_time_step = nrows_test
-    if val:
-        return train_gen, train_steps, val_gen, val_steps, (X_test, Y_test), max_time_step
-
-    return  train_gen, train_steps, (X_test, Y_test), max_time_step
-
-
-def data_reader_for_model_dec(config,train, test, numerical=config.num, categorical=config.cat, batch_size=1024, val=False):
-
-    nrows_train = train[1]
-    nrows_test = test[1]
-
-    
-    if numerical and categorical:
-        X_train = train[0][:, :, 2:-1] #column 0 is patient_id and column 1 is time step
-        X_test = test[0][:, :, 2:-1]
-
-    elif numerical and not categorical:
-        X_train = train[0][:, :, 2:-1] #column 0 is patient_id and column 1 is time step
-        X_test = test[0][:, :, 2:-1]
-        X_train = X_train[:,:,7:]
-        X_test = X_test[:,:,7:]
-
-    elif not numerical and categorical:
-        X_train = train[0][:, :, 2:-1] #column 0 is patient_id and column 1 is time step
-        X_test = test[0][:, :, 2:-1]
-        X_train = X_train[:,:,0:7]
-        X_test = X_test[:,:,0:7]
-    
-    Y_train = train[0][:, :, -1]
-    Y_test = test[0][:, :, -1]
-
-    X_train = list(zip(X_train, nrows_train))
-    if val:
-        (X_train, Y_train), (X_val, Y_val) = train_test_split(X_train, Y_train, split_size=0.2)        
-        X_val, nrows_val = zip(*X_val)
-    
-    X_train, nrows_train = zip(*X_train)
-
-    Y_train = Y_train.astype(int)
-    Y_test = Y_test.astype(int)
-    X_train = np.array(X_train)
-    
-    if numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=True, batch_size=batch_size, train=True,phen=False)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if numerical and not categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=False, batch_size=batch_size, train=True,phen=False)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if not numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=False,categorical=True, batch_size=batch_size, train=True,phen=False)
-        train_steps = np.ceil(len(X_train)/batch_size)
-
-    if val:
-        Y_val = Y_val.astype(int)        
-        val_gen   = batch_generator(config,X_val, Y_val,numerical=True,categorical=True, batch_size=batch_size, train=False,phen=False)
-        val_steps = np.ceil(len(X_val)/batch_size)
-
-    max_time_step = nrows_test
-    if val:
-        return train_gen, train_steps, val_gen, val_steps, (X_test, Y_test), max_time_step
-
-    return  train_gen, train_steps, (X_test, Y_test), max_time_step
-
-def data_reader_for_model_mort(config,train, test, numerical=config.num, categorical=config.cat,batch_size=1024, val=False):
-
-    nrows_train = train[1]
-    nrows_test = test[1]
-
-    if numerical and categorical:
-        # import pdb
-        # pdb.set_trace()
-        X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step, last col is mort label, 2nd to last is los
-        X_test = test[0][:, :, 2:-2]
-
-    elif numerical and not categorical:
-        X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step, last col is mort label, 2nd to last is los
-        X_test = test[0][:, :, 2:-2]
-        X_train = X_train[:,:,7:]
-        X_test = X_test[:,:,7:]
-
-    elif not numerical and categorical:
-        X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step, last col is mort label, 2nd to last is los
-        X_test = test[0][:, :, 2:-2]
-        X_train = X_train[:,:,0:7]
-        X_test = X_test[:,:,0:7]
-
-    Y_train = train[0][:, 0, -1]
-    Y_test = test[0][:, 0, -1]
-   
-    
-
-    X_train = list(zip(X_train, nrows_train))
-    
-    if val:
-        (X_train, Y_train), (X_val, Y_val) = train_test_split(X_train, Y_train, split_size=0.2)        
-        X_val, nrows_val = zip(*X_val)
-    
-    X_train, nrows_train = zip(*X_train)
-
-    Y_train = Y_train.astype(int)
-    Y_test = Y_test.astype(int)
-    X_train = np.array(X_train)
-    if numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=True, batch_size=batch_size, train=True,phen=False,ohe=config.ohe)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if numerical and not categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=False, batch_size=batch_size, train=True,phen=False,ohe=config.ohe)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if not numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=False,categorical=True, batch_size=batch_size, train=True,phen=False,ohe=config.ohe)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if val:
-        Y_val = Y_val.astype(int)        
-        val_gen   = batch_generator(X_val, Y_val, batch_size=batch_size, train=False,phen=False)
-        val_steps = np.ceil(len(X_val)/batch_size)
-
-    max_time_step = nrows_test
-    if val:
-        return train_gen, train_steps, val_gen, val_steps, (X_test, Y_test), max_time_step
-
-    return  train_gen, train_steps, (X_test, Y_test), max_time_step
-
-
-
-
-def data_reader_for_model_rlos(config,train, test, numerical=config.num, categorical=config.cat, batch_size=1024, val=False):
-
-    nrows_train = train[1]
-    nrows_test = test[1]
-
-    
-    if numerical and categorical:
-        X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step
-        X_test = test[0][:, :, 2:-2]
-
-    elif numerical and not categorical:
-        X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step
-        X_test = test[0][:, :, 2:-2]
-        X_train = X_train[:,:,7:]
-        X_test = X_test[:,:,7:]
-
-    elif not numerical and categorical:
-        X_train = train[0][:, :, 2:-2] #column 0 is patient_id and column 1 is time step
-        X_test = test[0][:, :, 2:-2]
-        X_train = X_train[:,:,0:7]
-        X_test = X_test[:,:,0:7]
-    
-    Y_train = train[0][:, :, -1]
-    Y_test = test[0][:, :, -1]
-
-    X_train = list(zip(X_train, nrows_train))
-    if val:
-        (X_train, Y_train), (X_val, Y_val) = train_test_split(X_train, Y_train, split_size=0.2)        
-        X_val, nrows_val = zip(*X_val)
-    
-    X_train, nrows_train = zip(*X_train)
-    X_train = np.array(X_train)
-    
-    if numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=True, batch_size=batch_size, train=True,phen=False)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if numerical and not categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=True,categorical=False, batch_size=batch_size, train=True,phen=False)
-        train_steps = np.ceil(len(X_train)/batch_size)
-    if not numerical and categorical:
-        train_gen = batch_generator(config,X_train, Y_train,numerical=False,categorical=True, batch_size=batch_size, train=True,phen=False)
-        train_steps = np.ceil(len(X_train)/batch_size)
-
-    if val:
-        Y_val = Y_val.astype(int)        
-        val_gen   = batch_generator(config,X_val, Y_val,numerical=True,categorical=True, batch_size=batch_size, train=False,phen=False)
-        val_steps = np.ceil(len(X_val)/batch_size)
+        val_gen   = batch_generator(X_val, Y_val, batch_size=config.batch_size, train=False,phen=True)
+        val_steps = np.ceil(len(X_val)/config.batch_size)
 
     max_time_step = nrows_test
     if val:

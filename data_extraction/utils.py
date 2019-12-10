@@ -366,13 +366,13 @@ def normalize_data_mort(config, data, train_idx, test_idx, cat=True, num=True):
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
-        data = data[col_used]
+    
     elif num and not cat:
         col_used += config.dec_num
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
-        data = data[col_used]
+    
     elif not num and cat:
         col_used += config.dec_cat
         train = data[data['patientunitstayid'].isin(train_idx)]
@@ -384,6 +384,9 @@ def normalize_data_mort(config, data, train_idx, test_idx, cat=True, num=True):
         train, nrows_train = pad(train)
         test, nrows_test = pad(test)
         return (train, nrows_train), (test, nrows_test)
+    
+    train = train[col_used]
+    test = test[col_used]
 
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
@@ -570,23 +573,23 @@ def normalize_data_rlos(config, data, train_idx, test_idx, cat=True, num=True):
         col_used += config.dec_cat 
         col_used += config.dec_num
         col_used += ['RLOS']
-        data = data[col_used]
-    elif num and not cat:
+    
+    elif num:
         col_used += config.dec_num
-        col_used += ['RLOS']
-        data = data[col_used]
-    elif not num and cat:
+        col_used += ['RLOS']  
+    
+    elif cat:
         col_used += config.dec_cat
         col_used += ['RLOS']
-        data = data[col_used]
-        train = df_to_list(train)
-        test = df_to_list(test)
+        train = df_to_list(train[col_used])
+        test = df_to_list(test[col_used])
         train, nrows_train = pad(train)
         test, nrows_test = pad(test)
         return (train, nrows_train), (test, nrows_test)
-    cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
-       'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
-       'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']
+    
+    train = train[col_used]
+    test = test[col_used]
+    cols_normalize = config.dec_num
     feat_train_minmax = train[cols_normalize]
     scaler_minmax = MinMaxScaler(feature_range=(-1, 1), copy=True).fit(feat_train_minmax.values)
     feat_train_minmax = scaler_minmax.transform(feat_train_minmax.values)
