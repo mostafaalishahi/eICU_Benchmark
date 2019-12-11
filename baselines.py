@@ -74,6 +74,7 @@ def base_mort(input_size, catg_len=429, embedding_dim=5, numerical=True, categor
         mask = Reshape((int(x2.shape[1])*int(x2.shape[2]+input1.shape[2]),))(inp)
     if ann:
         mask = keras.layers.Dense(64,activation='relu')(mask)
+    
     out = keras.layers.Dense(1,activation="sigmoid")(mask)
     if numerical and categorical:
         model = keras.models.Model(inputs=[input1, input2], outputs=out)

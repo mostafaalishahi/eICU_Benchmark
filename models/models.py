@@ -96,3 +96,68 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
         print('Invalid task name')
 
     return model
+
+
+def baseline_network(config, input_size, output_dim=1, activation='sigmoid'):
+    if config.num and config.cat:
+        input1 = Input(shape=(input_size, 13))
+        
+        if config.ohe:
+            input2 = Input(shape=(input_size, config.n_cat_class))
+            inp = keras.layers.Concatenate(axis=-1)([input1, input2])
+        
+        else:
+            input2 = Input(shape=(input_size, 7))
+            x2 = Embedding(config.n_cat_class, config.embedding_dim)(input2)
+            x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
+            inp = keras.layers.Concatenate(axis=-1)([input1, x2])
+    
+    elif config.num:
+        input1 = Input(shape=(input_size, 13))
+        inp = input1 
+    
+    elif config.cat:
+        if config.ohe:
+            input1 = Input(shape=(input_size, config.n_cat_class))
+            inp = Reshape((int(input1.shape[1]),int(input1.shape[2]*input1.shape[3])))(input1)
+        
+        else:
+            input1 = Input(shape=(input_size, 7))
+            x1 = Embedding(config.n_cat_class, config.embedding_dim)(input1)
+            inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
+
+    mask = Masking(mask_value=0., name="maski")(inp)
+
+    if config.ann:
+        hidden = keras.layers.Dense(64,activation='relu')(mask)
+
+    if config.task in ['rlos', 'dec']:
+        out = TimeDistributed(Dense(output_dim, activation=activation))(hidden)
+    
+    elif config.task in ['mor', 'phen']:
+        out = Dense(output_dim, activation=activation)(hidden)
+    
+    else:
+        print('Invalid task type.')
+        exit() 
+
+    if config.num and config.cat:
+        model = keras.models.Model(inputs=[input1, input2], outputs=out)
+    else:
+        model = keras.models.Model(inputs=input1, outputs=out)
+
+    optim = metrics.get_optimizer(lr=config.lr)
+
+    if config.task == 'mor':
+        model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
+    
+    elif config.task == 'rlos':
+        model.compile(loss='mean_squared_error', optimizer=optim, metrics=['mse'])
+    
+    elif config.task in ['phen', 'dec']:
+        model.compile(loss="binary_crossentropy" ,optimizer=optim, metrics=[metrics.f1,'accuracy'])
+    
+    else:
+        print('Invalid task name')
+
+    return model
