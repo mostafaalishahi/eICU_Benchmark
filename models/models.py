@@ -47,7 +47,7 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
             x1 = Embedding(config.n_cat_class, config.embedding_dim)(input1)
             inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
 
-    mask = Masking(mask_value=0.,name="maski")(inp)
+    mask = Masking(mask_value=0., name="maski")(inp)
 
     lstm = mask
     for i in range(config.rnn_layers-1):

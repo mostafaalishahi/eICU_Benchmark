@@ -15,113 +15,12 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-# def get_tpr_auc_spec(y_true, y_pred, mean_fpr_dec=np.linspace(0, 1, 100)):
-        
-#     fpr_dec, tpr_dec, thresholds = roc_curve(y_true, y_pred)
-    
-#     tprs_dec.append(interp(mean_fpr_dec, fpr_dec, tpr_dec))
-#     tprs_dec[-1][0] = 0.0
-    
-#     roc_auc_dec = auc(fpr_dec, tpr_dec)
-#     spec = 1-fpr_dec[tpr_dec>=0.90][0]
-
-#     return tprs_dec, roc_auc_dec, spec
-
-# def get_PPV_NPV(y_true, y_pred):
-#     TN,FP,FN,TP = confusion_matrix(y_true, y_pred.round()).ravel()
-#     PPV = TP/(TP+FP)
-#     NPV = TN/(TN+FN)
-    
-#     return PPV, NPV
-
-# # Common train method for all tasks
-# def train(config, model_type='lstm'):
-    
-#     metrics_ = {}
-
-#     inp_sh = 200    
-#     if config.task == 'dec':
-#         from data_extraction.utils import normalize_data_dec as normalize_data
-#         from data_extraction.data_extraction_decompensation import data_extraction_decompensation as extract_data
-#         out_dim = 1
-#         activa = 'sigmoid'
-#     elif config.task == 'phe':
-#         from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping as extract_data
-#         from data_extraction.utils import normalize_data_phe as normalize_data     
-#         out_dim = 25
-#         activa = 'sigmoid'        
-#     elif config.task == 'mort':
-#         from data_extraction.data_extraction_mortality import data_extraction_mortality as extract_data
-#         from data_extraction.utils import normalize_data_mort as normalize_data
-#         inp_sh = config.mort_window
-#         out_dim = 1
-#         activa = 'sigmoid'        
-#     elif config.task == 'rlos':
-#         from data_extraction.data_extraction_rlos import data_extraction_rlos as extract_data
-#         from data_extraction.utils import normalize_data_rlos as normalize_data
-#         out_dim = 1
-#         activa = 'relu'
-
-#     df_data = extract_data(config)
-#     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
-
-#     skf = KFold(n_splits=config.k_fold)
-
-#     for train_idx, test_idx in skf.split(all_idx):
-#         train_idx = all_idx[train_idx]  
-#         test_idx = all_idx[test_idx]
-#         if config.num and config.cat:
-#             train, test = normalize_data(config, df_data, train_idx, test_idx, cat=config.cat, num=config.num)
-#             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-#         elif config.num and not config.cat:
-#             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-#             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-#         elif not config.num and config.cat:
-#             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-#             train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        
-#         model = network(config, inp_sh, output_dim=out_dim, activation=activa)
-
-#         history = model.fit_generator(train_gen,steps_per_epoch=25,
-#                             epochs=config.epochs,verbose=1,shuffle=True)
-        
-#         if config.num and config.cat:
-#             probas_dec = model.predict([X_test[:,:,7:], X_test[:,:,:7]])
-#         else :
-#             probas_dec = model.predict([X_test])
-
-#         if config.task == 'dec':
-#             Y_test, probas_dec = evaluation.decompensation_metrics(Y_test, probas_dec, max_time_step_test)
-
-#         if config.task == 'phen':
-#             phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)   
-#             metrics_['phen_auc'] = metrics_.get('phen_auc', []).append(phen_auc)
-
-#         elif config.task=='rlos':
-#             r2, mse, mae = evaluation.regression_metrics(Y_test,probas_rlos,max_time_step_test)
-#             metrics_['r2'] = metrics_.get('r2', []).append(phen_auc)
-#             metrics_['mse'] = metrics_.get('mse', []).append(phen_auc)
-#             metrics_['mae'] = metrics_.get('mae', []).append(phen_auc)
-#         else:                
-#             tprs_dec, roc_auc_dec, spec = get_tpr_auc_spec(Y_test, probas_dec)
-#             PPV, NPV = get_PPV_NPV(Y_test, probas_dec)
-#             average_precision_dec = average_precision_score(Y_test, probas_dec)
-#             mat_coref = matthews_corrcoef(Y_test, probas_dec.round())
-#             metrics_['tprs_dec'] = metrics_.get('tprs_dec', []).append(phen_auc)
-#             metrics_['roc_auc_dec'] = metrics_.get('roc_auc_dec', []).append(phen_auc)
-#             metrics_['spec'] = metrics_.get('spec', []).append(phen_auc)
-#             metrics_['PPV'] = metrics_.get('PPV', []).append(phen_auc) 
-#             metrics_['NPV'] = metrics_.get('NPV', []).append(phen_auc) 
-#             metrics_['average_precision_dec'] = metrics_.get('average_precision_dec', []).append(phen_auc)
-#             metrics_['mat_coref'] = metrics_.get('mat_coref', []).append(phen_auc)            
-
-#     return metrics_
 
 #Decompensation
 def train_dec(config):
     from data_extraction.utils import normalize_data_dec as normalize_data
-    from data_extraction.data_extraction_decompensation import data_extraction_decompensation
-    df_data = data_extraction_decompensation(config)
+    from data_extraction.data_extraction_decompensation import data_extraction_decompensation as extract_data
+    df_data = extract_data(config)
 
     cvscores_dec = []
     tprs_dec = []
@@ -136,7 +35,7 @@ def train_dec(config):
 
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
 
-    skf = KFold(n_splits=2)
+    skf = KFold(n_splits=config.k_fold)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
@@ -154,11 +53,10 @@ def train_dec(config):
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
+        
         if config.num and config.cat:
             probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        elif config.num and not config.cat:
-            probas_dec = model.predict([X_test])
-        elif not config.num and config.cat:
+        else:
             probas_dec = model.predict([X_test])
 
         Y_test, probas_dec = evaluation.decompensation_metrics(Y_test,probas_dec,max_time_step_test)
@@ -212,7 +110,7 @@ def train_mort(config):
 
     df_data = data_extraction_mortality(config)
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
-    skf = KFold(n_splits=2)
+    skf = KFold(n_splits=config.k_fold)
 
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]  
@@ -234,19 +132,17 @@ def train_mort(config):
                             epochs=config.epochs,verbose=1,shuffle=True)
         
         if config.num and config.cat:
-             if config.ohe:
+            if config.ohe:
                 x_cat = X_test[:, :, :7].astype(int)
                 x_nc = X_test[:,:,7:]
                 one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
-                x_cat = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
                 print("Please wait, One-hot encoding ...")
                 probas_mort = model.predict([x_nc, x_cat])
                 #todo Replace np.eye with faster function
             else:
                 probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        elif config.num and not config.cat:
-            probas_mort = model.predict([X_test])
-        elif not config.num and config.cat:
+        else :
             probas_mort = model.predict([X_test])
 
         
@@ -290,7 +186,7 @@ def train_phen(config):
    
     phen_auc  = []
     phen_aucs = []
-    skf = KFold(n_splits=2)
+    skf = KFold(n_splits=config.k_fold)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
@@ -311,9 +207,7 @@ def train_phen(config):
 
         if config.num and config.cat:
             probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        elif config.num and not config.cat:
-            probas_phen = model.predict([X_test])
-        elif not config.num and config.cat:
+        else :
             probas_phen = model.predict([X_test])
 
         phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
@@ -333,7 +227,7 @@ def train_rlos(config):
     r2s= []
     mses = []
     maes = []
-    skf = KFold(n_splits=2)
+    skf = KFold(n_splits=config.k_fold)
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
@@ -353,10 +247,9 @@ def train_rlos(config):
                             epochs=config.epochs,verbose=1,shuffle=True)
         if config.num and config.cat:
             probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        elif config.num and not config.cat:
+        else :
             probas_rlos = model.predict([X_test])
-        elif not config.num and config.cat:
-            probas_rlos = model.predict([X_test])
+            
         r2,mse,mae = evaluation.regression_metrics(Y_test,probas_rlos,max_time_step_test)
         r2s.append(r2)
         mses.append(mse)
