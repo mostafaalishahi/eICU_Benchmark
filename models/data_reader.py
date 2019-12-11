@@ -63,8 +63,6 @@ def read_data(config, train, test, val=False):
 
     X_train = train[0][:, :, 1:-n_labels] #column 0 is patient_id
     X_test = test[0][:, :, 1:-n_labels]
-    import pdb
-    pdb.set_trace()
 
     if config.num and not config.cat:
         X_train = X_train

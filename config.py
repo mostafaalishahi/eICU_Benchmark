@@ -17,11 +17,11 @@ class Config():
         self.cat = args.cat #  
         self.n_cat_class = 429        
 
-        self.k_fold = 2
+        self.k_fold = 5
         #model params
         self.model_dir = ''
         self.embedding_dim = 5
-        self.epochs = 1
+        self.epochs = 100
         self.batch_size = 512
 
         self.ann = args.ann #

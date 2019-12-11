@@ -84,7 +84,14 @@ def train_dec(config):
     print("AUCPR:{0:0.3f}".format(np.mean(aucprs_dec)))
     print("MCC: {0:0.3f}".format(np.mean(mccs_dec)))
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_dec)))
-
+    
+    return {'Mean AUC': mean_auc_dec,
+            'STD':std_auc_dec,
+            'PPV':np.mean(ppvs_dec),
+            'NPV':np.mean(npvs_dec),
+            'AUCPR':np.mean(aucprs_dec),
+            'MCC':np.mean(mccs_dec),
+            'Spec@90':np.mean(specat90_dec)}
 
 #Mortality
 def train_mort(config):
@@ -162,7 +169,13 @@ def train_mort(config):
     print("MCC: {0:0.3f}".format(np.mean(mccs_mort)))
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_mort)))
         
-
+    return {'Mean AUC': mean_auc_mort,
+            'STD':std_auc_mort,
+            'PPV':np.mean(ppvs_mort),
+            'NPV':np.mean(npvs_mort),
+            'AUCPR':np.mean(aucprs_mort),
+            'MCC':np.mean(mccs_mort),
+            'Spec@90':np.mean(specat90_mort)}    
 
 def transform_hospital_discharge_status(status_series):
     global h_s_map
@@ -213,6 +226,9 @@ def train_phen(config):
     aucs = np.mean(np.array(phen_aucs),axis=0)
     for i in range(len(config.col_phe)):
         print("{0} : {1:0.3f}".format(config.col_phe[i],aucs[i]))
+    return {'AUROC mean': aucs_mean,
+            'AUROC std': aucs_std}
+
 
 # Remaining length of stay
 
@@ -261,6 +277,12 @@ def train_rlos(config):
     print("MSE total: {0:0.3f}  +- {1:0.3f}".format(meanmses,stdmses))
     print("MAE total:{0:0.3f}  +- {1:0.3f}".format(meanmaes,stdmaes))
 
+    return {'R2 mean': meanr2s,
+         'R2 std': stdr2s,
+         'MSE mean':meanmses,
+         'MSE std':stdmses,
+         'MAE mean':meanmaes,
+         'MAE std':meanmaes}
 
 def main():
     tf_config = tf.ConfigProto()
@@ -274,15 +296,30 @@ def main():
     np.random.seed(config.seed)
 
     if config.task == 'dec':
-        train_dec(config)
+        result = train_dec(config)
     elif config.task =='mort':
-        train_mort(config)
+        result = train_mort(config)
     elif config.task == 'phen':
-        train_phen(config)
+        result = train_phen(config)
     elif config.task =='rlos':
-        train_rlos(config)
+        result = train_rlos(config)
     else:
         print('Invalid task name')
 
+    output_file_name = 'result_baseline_{}_{}_{}_{}_{}_{}.json'.format(config.task, str(config.num), str(config.cat), str(config.ann), str(config.ohe), config.mort_window)
+    with open(output_file_name, 'w') as f:
+        f.write(str(result))
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--task", default='mort', type=str, required=False, dest='task')
+    parser.add_argument("--num", default=True, type=str, required=False, dest='num')
+    parser.add_argument("--cat", default=True, type=str, required=False, dest='cat')
+    parser.add_argument("--ann", default=False, type=str, required=False, dest='ann')
+    parser.add_argument("--ohe", default=False, type=str, required=False, dest='ohe')
+    parser.add_argument("--mort_window", default=24, type=int, required=False, dest='mort_window')
+
+    args = parser.parse_args()
+    config = Config(args)
+    main(config)
