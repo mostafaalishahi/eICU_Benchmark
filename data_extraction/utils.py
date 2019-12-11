@@ -269,23 +269,23 @@ def df_to_list(df):
     return df_arr
 
 
-def normalize_data_dec(config, data, train_idx, test_idx, cat=True, num=True):
+def normalize_data_dec(config, data, train_idx, test_idx):
     col_used = ['patientunitstayid']
 
-    if num and cat:
+    if config.num and config.cat:
        col_used += config.dec_cat 
        col_used += config.dec_num
        train = data[data['patientunitstayid'].isin(train_idx)]
        test  = data[data['patientunitstayid'].isin(test_idx)]
        col_used += ['unitdischargestatus']
        data = data[col_used]
-    elif num and not cat:
+    elif config.num:
         col_used += config.dec_num
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['unitdischargestatus']
         data = data[col_used]
-    elif not num and cat:
+    elif config.cat:
         col_used += config.dec_cat
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
@@ -357,23 +357,23 @@ def filter_mortality_data(all_df):
 
 
 
-def normalize_data_mort(config, data, train_idx, test_idx, cat=True, num=True):
+def normalize_data_mort(config, data, train_idx, test_idx):
 
     col_used = ['patientunitstayid']
-    if num and cat:
+    if config.num and config.cat:
         col_used += config.dec_cat 
         col_used += config.dec_num
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
     
-    elif num and not cat:
+    elif config.num:
         col_used += config.dec_num
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
     
-    elif not num and cat:
+    elif config.cat:
         col_used += config.dec_cat
         train = data[data['patientunitstayid'].isin(train_idx)]
         test  = data[data['patientunitstayid'].isin(test_idx)]
@@ -410,18 +410,18 @@ def normalize_data_mort(config, data, train_idx, test_idx, cat=True, num=True):
     return (train, nrows_train), (test, nrows_test)
 
 # Phenotyping
-def normalize_data_phe(config, data, train_idx, test_idx, cat=True, num=True):
+def normalize_data_phe(config, data, train_idx, test_idx):
     col_used = ['patientunitstayid']
     train = data[data['patientunitstayid'].isin(train_idx)]
     test  = data[data['patientunitstayid'].isin(test_idx)]
-    if num and cat:
+    if config.num and config.cat:
         col_used += config.dec_cat 
         col_used += config.dec_num
         data = data[col_used]
-    elif num and not cat:
+    elif config.num :
         col_used += config.dec_num
         data = data[col_used]
-    elif not num and cat:
+    elif config.cat:
         col_used += config.dec_cat
         data = data[col_used]
         train = df_to_list(train)
@@ -564,21 +564,21 @@ def filter_rlos_data(all_df):
     all_los = all_los.round({'RLOS': 2})
     return all_los
 
-def normalize_data_rlos(config, data, train_idx, test_idx, cat=True, num=True):
+def normalize_data_rlos(config, data, train_idx, test_idx):
     col_used = ['patientunitstayid']
     train = data[data['patientunitstayid'].isin(train_idx)]
     test  = data[data['patientunitstayid'].isin(test_idx)]
 
-    if num and cat:
+    if config.num and config.cat:
         col_used += config.dec_cat 
         col_used += config.dec_num
         col_used += ['RLOS']
     
-    elif num:
+    elif config.num:
         col_used += config.dec_num
         col_used += ['RLOS']  
     
-    elif cat:
+    elif config.cat:
         col_used += config.dec_cat
         col_used += ['RLOS']
         train = df_to_list(train[col_used])
