@@ -117,14 +117,14 @@ def train_mort(config):
         test_idx = all_idx[test_idx]
 
         if config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+            train, test = `normalize_data`(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         elif config.num and not config.cat:
             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         elif not config.num and config.cat:
             train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
+            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
         
         model = network(config, 200, output_dim=1, activation='sigmoid')
 

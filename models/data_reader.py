@@ -55,7 +55,7 @@ def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0),
                         yield X[st_idx:end_idx], Y[st_idx:end_idx]
 
 
-def data_reader_for_all(config, train, test, val=False):
+def read_data(config, train, test, val=False):
     nrows_train = train[1]
     nrows_test = test[1]
 

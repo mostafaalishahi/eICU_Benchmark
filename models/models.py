@@ -12,7 +12,7 @@ from keras.models import load_model
 from keras.layers import BatchNormalization, LSTM, Dropout, Dense, TimeDistributed, Masking, Activation, Input, Reshape, Embedding, Bidirectional
 from keras import regularizers
 from keras.callbacks import ModelCheckpoint
-import metrics
+from models import metrics
 
 seed = 1
 np.random.seed(seed)
