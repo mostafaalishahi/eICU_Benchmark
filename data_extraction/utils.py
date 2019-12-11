@@ -270,37 +270,31 @@ def df_to_list(df):
 
 
 def normalize_data_dec(config, data, train_idx, test_idx):
+
+    train = data[data['patientunitstayid'].isin(train_idx)]
+    test  = data[data['patientunitstayid'].isin(test_idx)]    
     col_used = ['patientunitstayid']
 
     if config.num and config.cat:
        col_used += config.dec_cat 
        col_used += config.dec_num
-       train = data[data['patientunitstayid'].isin(train_idx)]
-       test  = data[data['patientunitstayid'].isin(test_idx)]
        col_used += ['unitdischargestatus']
-       data = data[col_used]
+    
     elif config.num:
         col_used += config.dec_num
-        train = data[data['patientunitstayid'].isin(train_idx)]
-        test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['unitdischargestatus']
-        data = data[col_used]
+    
     elif config.cat:
         col_used += config.dec_cat
-        train = data[data['patientunitstayid'].isin(train_idx)]
-        test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['unitdischargestatus']
-        data = data[col_used]
-        train = df_to_list(train)
-        test = df_to_list(test)
+        train = df_to_list(train[col_used])
+        test = df_to_list(test[col_used])
         train, nrows_train = pad(train)
         test, nrows_test = pad(test)
         return (train, nrows_train), (test, nrows_test)
 
-    col_used += ['unitdischargestatus']
-
-    data = data[col_used]
-
+    train = train[col_used]
+    test = test[col_used]
     
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
@@ -359,28 +353,24 @@ def filter_mortality_data(all_df):
 
 def normalize_data_mort(config, data, train_idx, test_idx):
 
+    train = data[data['patientunitstayid'].isin(train_idx)]
+    test  = data[data['patientunitstayid'].isin(test_idx)]
     col_used = ['patientunitstayid']
+
     if config.num and config.cat:
         col_used += config.dec_cat 
         col_used += config.dec_num
-        train = data[data['patientunitstayid'].isin(train_idx)]
-        test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
     
     elif config.num:
         col_used += config.dec_num
-        train = data[data['patientunitstayid'].isin(train_idx)]
-        test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
     
     elif config.cat:
         col_used += config.dec_cat
-        train = data[data['patientunitstayid'].isin(train_idx)]
-        test  = data[data['patientunitstayid'].isin(test_idx)]
         col_used += ['hospitaldischargestatus']
-        data = data[col_used]
-        train = df_to_list(train)
-        test = df_to_list(test)
+        train = df_to_list(train[col_used])
+        test = df_to_list(test[col_used])
         train, nrows_train = pad(train)
         test, nrows_test = pad(test)
         return (train, nrows_train), (test, nrows_test)
@@ -414,22 +404,27 @@ def normalize_data_phe(config, data, train_idx, test_idx):
     col_used = ['patientunitstayid']
     train = data[data['patientunitstayid'].isin(train_idx)]
     test  = data[data['patientunitstayid'].isin(test_idx)]
+
     if config.num and config.cat:
         col_used += config.dec_cat 
         col_used += config.dec_num
-        data = data[col_used]
+        col_used += config.col_phe
+
     elif config.num :
         col_used += config.dec_num
-        data = data[col_used]
+        col_used += config.col_phe
+
     elif config.cat:
         col_used += config.dec_cat
-        data = data[col_used]
-        train = df_to_list(train)
-        test = df_to_list(test)
+        col_used += config.col_phe
+        train = df_to_list(train[col_used])
+        test = df_to_list(test[col_used])
         train, nrows_train = pad(train)
         test, nrows_test = pad(test)
         return (train, nrows_train), (test, nrows_test)
-        
+    
+    train = train[col_used]
+    test = test[col_used]
     cols_normalize = ['admissionheight','admissionweight', 'age', 'Heart Rate', 'MAP (mmHg)',
        'Invasive BP Diastolic', 'Invasive BP Systolic', 'O2 Saturation',
        'Respiratory Rate', 'Temperature (C)', 'glucose', 'FiO2', 'pH']
@@ -563,6 +558,8 @@ def filter_rlos_data(all_df):
     all_los = all_los[(all_los['unitdischargeoffset'] > 0) & (all_los['RLOS'] > 0)]
     all_los = all_los.round({'RLOS': 2})
     return all_los
+
+
 
 def normalize_data_rlos(config, data, train_idx, test_idx):
     col_used = ['patientunitstayid']

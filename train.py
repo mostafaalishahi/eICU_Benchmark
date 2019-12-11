@@ -10,6 +10,9 @@ from scipy import interp
 from models import evaluation
 import sys
 from models.models import build_network as network
+import tensorflow as tf
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 if not sys.warnoptions:
     import warnings
@@ -36,7 +39,8 @@ def train_dec(config):
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
 
     skf = KFold(n_splits=config.k_fold)
-    for train_idx, test_idx in skf.split(all_idx):
+    for fold_id, (train_idx, test_idx) in enumerate(skf.split(all_idx)):
+        print('Running Fold {}...'.format(fold_id+1))
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
@@ -77,6 +81,7 @@ def train_dec(config):
     mean_tpr_dec[-1] = 1.0
     mean_auc_dec = auc(mean_fpr_dec, mean_tpr_dec)
     std_auc_dec = np.std(aucs_dec)
+    
     print("====================Decompensation================")
     print("Mean AUC{0:0.3f} +- STD{1:0.3f}".format(mean_auc_dec,std_auc_dec))
     print("PPV: {0:0.3f}".format(np.mean(ppvs_dec)))
@@ -84,6 +89,14 @@ def train_dec(config):
     print("AUCPR:{0:0.3f}".format(np.mean(aucprs_dec)))
     print("MCC: {0:0.3f}".format(np.mean(mccs_dec)))
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_dec)))
+
+    return {'Mean AUC': mean_auc_dec,
+            'STD':std_auc_dec,
+            'PPV':np.mean(ppvs_dec),
+            'NPV':np.mean(npvs_dec),
+            'AUCPR':np.mean(aucprs_dec),
+            'MCC':np.mean(mccs_dec),
+            'Spec@90':np.mean(specat90_dec)}
 
 
 #Mortality
@@ -161,16 +174,22 @@ def train_mort(config):
     print("AUCPR:{0:0.3f}".format(np.mean(aucprs_mort)))
     print("MCC: {0:0.3f}".format(np.mean(mccs_mort)))
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_mort)))
-        
+
+    return {'Mean AUC': mean_auc_mort,
+            'STD':std_auc_mort,
+            'PPV':np.mean(ppvs_mort),
+            'NPV':np.mean(npvs_mort),
+            'AUCPR':np.mean(aucprs_mort),
+            'MCC':np.mean(mccs_mort),
+            'Spec@90':np.mean(specat90_mort)}        
 
 #Phenotyping
 def train_phen(config):
     from data_extraction.utils import normalize_data_phe as normalize_data
     from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping
     df_data, df_label = data_extraction_phenotyping(config)
-    df_data = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
-    all_idx = np.array(list(df_data['patientunitstayid'].unique()))   
-   
+    df = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
+    all_idx = np.array(list(df['patientunitstayid'].unique()))   
     phen_auc  = []
     phen_aucs = []
     skf = KFold(n_splits=config.k_fold)
@@ -178,7 +197,7 @@ def train_phen(config):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
-        train, test = normalize_data(config, df_data,train_idx, test_idx)
+        train, test = normalize_data(config, df,train_idx, test_idx)
         train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test, val=False)
      
         model = network(config, 200, output_dim=25, activation='sigmoid')
@@ -192,12 +211,14 @@ def train_phen(config):
 
         phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
         phen_aucs.append(phen_auc)
-    aucs = np.mean(np.array(phen_aucs),axis=0)
+    aucs_mean = np.mean(np.array(phen_aucs),axis=0)
+    aucs_std  =  np.std(np.array(phen_aucs),axis=0)
     for i in range(len(config.col_phe)):
-        print("{0} : {1:0.3f}".format(config.col_phe[i],aucs[i]))
+        print("{0} : {1:0.3f} +- {2:0.3f}".format(config.col_phe[i],aucs_mean[i],aucs_std[i]))
+    return {'AUROC mean': aucs_mean,
+            'AUROC std': aucs_std}
 
 # Remaining length of stay
-
 def train_rlos(config):
     from data_extraction.utils import normalize_data_rlos as normalize_data
     from data_extraction.data_extraction_rlos import data_extraction_rlos
@@ -243,28 +264,49 @@ def train_rlos(config):
     print("MSE total: {0:0.3f}  +- {1:0.3f}".format(meanmses,stdmses))
     print("MAE total:{0:0.3f}  +- {1:0.3f}".format(meanmaes,stdmaes))
 
+    return {'R2 mean': meanr2s,
+         'R2 std': stdr2s,
+         'MSE mean':meanmses,
+         'MSE std':stdmses,
+         'MAE mean':meanmaes,
+         'MAE std':meanmaes}
 
-def main():
+
+def main(config):
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.per_process_gpu_memory_fraction = 1
     session = tf.Session(config=tf_config)
     K.set_session(session)
 
-
-    config = Config()
-
     np.random.seed(config.seed)
 
     if config.task == 'dec':
-        train_dec(config)
+        result = train_dec(config)
     elif config.task =='mort':
-        train_mort(config)
+        result = train_mort(config)
     elif config.task == 'phen':
-        train_phen(config)
+        result = train_phen(config)
     elif config.task =='rlos':
-        train_rlos(config)
+        result = train_rlos(config)
     else:
         print('Invalid task name')
 
+    output_file_name = 'result_{}_{}_{}_{}_{}_{}.json'.format(config.task, str(config.num), str(config.cat), str(config.ann), str(config.ohe), config.mort_window)
+    with open(output_file_name, 'w') as f:
+        f.write(str(result))
+
+    return True
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--task", default='mort', type=str, required=False, dest='task')
+    parser.add_argument("--num", default=True, type=str, required=False, dest='num')
+    parser.add_argument("--cat", default=True, type=str, required=False, dest='cat')
+    parser.add_argument("--ann", default=False, type=str, required=False, dest='ann')
+    parser.add_argument("--ohe", default=False, type=str, required=False, dest='ohe')
+    parser.add_argument("--mort_window", default=24, type=int, required=False, dest='mort_window')
+
+    args = parser.parse_args()
+    config = Config(args)
+    main(config)

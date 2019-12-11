@@ -30,17 +30,11 @@ def data_extraction_phenotyping(args):
                     "Cardiac dysrhythmias",
                     "CHF", "DM with complications", "Other liver diseases", "Conduction disorders"]
     
-    diag_columns = ['patientunitstayid', 'itemoffset',
-                'Respiratory failure',
-                'Essential hypertension', 'Cardiac dysrhythmias',
-                'Fluid disorders', 'Septicemia',
-                'Acute and unspecified renal failure', 'Pneumonia',
-                'Acute cerebrovascular disease', 'CHF', 'CKD', 'COPD',
-                'Acute myocardial infarction', "Gastrointestinal hem",
-                'Shock', 'lipid disorder', 'DM with complications', 'Coronary athe',
-                'Pleurisy', 'Other liver diseases', 'lower respiratory',
-                'Hypertension with complications', 'Conduction disorders',
-                'Complications of surgical', 'upper respiratory',
+    diag_columns = ['patientunitstayid', 'itemoffset','Respiratory failure','Essential hypertension', 'Cardiac dysrhythmias',
+                'Fluid disorders', 'Septicemia','Acute and unspecified renal failure', 'Pneumonia',
+                'Acute cerebrovascular disease', 'CHF', 'CKD', 'COPD','Acute myocardial infarction', "Gastrointestinal hem",
+                'Shock', 'lipid disorder', 'DM with complications', 'Coronary athe','Pleurisy', 'Other liver diseases', 'lower respiratory',
+                'Hypertension with complications', 'Conduction disorders','Complications of surgical', 'upper respiratory',
                 'DM without complication']
 
     codes = json.load(open('phen_code.json'))
@@ -69,6 +63,10 @@ def data_extraction_phenotyping(args):
     all_pheno_label = label[label.patientunitstayid.isin(list(all_pheno.patientunitstayid.unique()))]
     return all_pheno, all_pheno_label
 
+    # df_data, df_label = data_extraction_phenotyping(config)
+    # df_data = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
+    # return df_data
+    
 
 def main():
     config = Config()

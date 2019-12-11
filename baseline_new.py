@@ -15,21 +15,6 @@ if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
-def transform_hospital_discharge_status(status_series):
-    global h_s_map
-    return {'actualhospitalmortality': status_series.fillna('').apply(
-        lambda s: h_s_map[s] if s in h_s_map else h_s_map[''])}
-
-def mort_apache(config):
-    h_s_map = {'ALIVE': 0, 'EXPIRED': 1, '': 2, 'NaN': 2}
-    apache = pd.read_csv(os.path.join(config.eicu_dir, 'apachePatientResult.csv'), index_col=False)
-    apache.update(transform_hospital_discharge_status(apache.actualhospitalmortality))
-    apache = apache[apache.apacheversion=="IVa"]
-    apache.loc[apache['predictedhospitalmortality']<=0,'predictedhospitalmortality']=0
-    apache.reset_index(inplace=True)
-    y_true = apache.actualhospitalmortality
-    y_pred = apache.predictedhospitalmortality
-    return y_pred,y_true
 
 #Decompensation
 def train_dec(config):
@@ -54,16 +39,10 @@ def train_dec(config):
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
-        if config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif config.num and not config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif not config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_dec(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        
+
+        train, test = normalize_data(config, df_data,train_idx, test_idx)
+        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test, val=False)
+     
         model = network(config, 200, output_dim=1, activation='sigmoid')
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
@@ -131,16 +110,9 @@ def train_mort(config):
         train_idx = all_idx[train_idx]  
         test_idx = all_idx[test_idx]
 
-        if config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif config.num and not config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif not config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_mort(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        
+        train, test = normalize_data(config, df_data,train_idx, test_idx)
+        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test, val=False)
+
         model = network(config, 200, output_dim=1, activation='sigmoid')
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
@@ -191,6 +163,24 @@ def train_mort(config):
     print("Spec@90: {0:0.3f}".format(np.mean(specat90_mort)))
         
 
+
+def transform_hospital_discharge_status(status_series):
+    global h_s_map
+    return {'actualhospitalmortality': status_series.fillna('').apply(
+        lambda s: h_s_map[s] if s in h_s_map else h_s_map[''])}
+
+def mort_apache(config):
+    h_s_map = {'ALIVE': 0, 'EXPIRED': 1, '': 2, 'NaN': 2}
+    apache.update(transform_hospital_discharge_status(apache.actualhospitalmortality))
+    apache = pd.read_csv(os.path.join(config.eicu_dir, 'apachePatientResult.csv'), index_col=False)
+    apache = apache[apache.apacheversion=="IVa"]
+    apache.loc[apache['predictedhospitalmortality']<=0,'predictedhospitalmortality']=0
+    apache.reset_index(inplace=True)
+    y_true = apache.actualhospitalmortality
+    y_pred = apache.predictedhospitalmortality
+    return y_pred,y_true
+
+    
 #Phenotyping
 def train_phen(config):
     from data_extraction.utils import normalize_data_phe as normalize_data
@@ -206,16 +196,9 @@ def train_phen(config):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
-        if config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_phe(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif config.num and not config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_phe(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif not config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_phe(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        
+        train, test = normalize_data(config, df_data,train_idx, test_idx)
+        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test, val=False)
+     
         model = network(config, 200, output_dim=25, activation='sigmoid')
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
@@ -246,16 +229,10 @@ def train_rlos(config):
     for train_idx, test_idx in skf.split(all_idx):
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
-        if config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_rlos(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif config.num and not config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_rlos(config, train, test,numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        elif not config.num and config.cat:
-            train, test = normalize_data(config, df_data,train_idx, test_idx, cat=config.cat, num=config.num)
-            train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.data_reader_for_model_rlos(config, train, test, numerical=config.num, categorical=config.cat,  batch_size=1024, val=False)
-        
+
+        train, test = normalize_data(config, df_data,train_idx, test_idx)
+        train_gen, train_steps, (X_test, Y_test), max_time_step_test = data_reader.read_data(config, train, test, val=False)
+      
         model = network(config, 200, output_dim=1, activation='relu')
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,

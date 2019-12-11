@@ -4,7 +4,7 @@
 # args, _ = parser.parse_known_args()
 
 class Config():
-    def __init__(self):
+    def __init__(self, args):
         self.seed = 36
 
         # data dir
@@ -12,9 +12,9 @@ class Config():
         self.eicu_dir = '/media/ehealth/HDD/ICU/DataSets/eICU'
 
         # task details
-        self.task = 'mort' #['phen', 'dec', 'mort', 'rlos']
-        self.num = True
-        self.cat = True        
+        self.task = args.task #['phen', 'dec', 'mort', 'rlos']
+        self.num = args.num #
+        self.cat = args.cat #  
         self.n_cat_class = 429        
 
         self.k_fold = 2
@@ -24,9 +24,9 @@ class Config():
         self.epochs = 1
         self.batch_size = 512
 
-        self.ann = True
-        self.ohe = True
-        self.mort_window = 24
+        self.ann = args.ann #
+        self.ohe = args.ohe #
+        self.mort_window = args.mort_window #48 
         self.lr = 0.0001
         self.dropout = 0.3
         self.rnn_layers = 2

@@ -57,7 +57,7 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
 
     if config.task in ['rlos', 'dec']:
         lstm = Bidirectional(LSTM(units=config.rnn_units[-1],kernel_regularizer=regularizers.l2(0.01),kernel_initializer='glorot_normal' ,name="lstm_{}".format(config.rnn_layers),return_sequences=True))(lstm)
-    elif config.task in ['mor', 'phen']:
+    elif config.task in ['mort', 'phen']:
         lstm = Bidirectional(LSTM(units=config.rnn_units[-1],kernel_regularizer=regularizers.l2(0.01),kernel_initializer='glorot_normal' ,name="lstm_{}".format(config.rnn_layers),return_sequences=False))(lstm)
     else:
         print('Invalid task type.')
@@ -69,7 +69,7 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
     if config.task in ['rlos', 'dec']:
         out = TimeDistributed(Dense(output_dim, activation=activation))(lstm)
     
-    elif config.task in ['mor', 'phen']:
+    elif config.task in ['mort', 'phen']:
         out = Dense(output_dim, activation=activation)(lstm)
     
     else:
@@ -83,7 +83,7 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
 
     optim = metrics.get_optimizer(lr=config.lr)
 
-    if config.task == 'mor':
+    if config.task == 'mort':
         model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
     
     elif config.task == 'rlos':
@@ -95,6 +95,7 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
     else:
         print('Invalid task name')
 
+    # print(model.summary())
     return model
 
 
@@ -134,7 +135,7 @@ def baseline_network(config, input_size, output_dim=1, activation='sigmoid'):
     if config.task in ['rlos', 'dec']:
         out = TimeDistributed(Dense(output_dim, activation=activation))(hidden)
     
-    elif config.task in ['mor', 'phen']:
+    elif config.task in ['mort', 'phen']:
         out = Dense(output_dim, activation=activation)(hidden)
     
     else:
@@ -148,7 +149,7 @@ def baseline_network(config, input_size, output_dim=1, activation='sigmoid'):
 
     optim = metrics.get_optimizer(lr=config.lr)
 
-    if config.task == 'mor':
+    if config.task == 'mort':
         model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
     
     elif config.task == 'rlos':

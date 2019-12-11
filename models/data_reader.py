@@ -1,8 +1,5 @@
 import numpy as np
 import random
-from config import Config
-
-config = Config()
 
 def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0), train=True, phen=True):
         if train:
@@ -59,28 +56,36 @@ def read_data(config, train, test, val=False):
     nrows_train = train[1]
     nrows_test = test[1]
 
-    if config.task == 'phe':
+    if config.task == 'phen':
         n_labels = len(config.col_phe)
     elif config.task in ['dec', 'mort', 'rlos']:
         n_labels = 1
 
     X_train = train[0][:, :, 1:-n_labels] #column 0 is patient_id
     X_test = test[0][:, :, 1:-n_labels]
+    import pdb
+    pdb.set_trace()
 
-    if config.num and config.cat:        
-        X_train = X_train[:,:,:-1]
-        X_test = X_test[:,:,:-1]
+    if config.num and not config.cat:
+        X_train = X_train
+        X_test = X_test
+        # X_train = X_train[:,:,7:] 
+        # X_test = X_test[:,:,7:]
 
-    elif config.num:
-        X_train = X_train[:,:,7:-1] 
-        X_test = X_test[:,:,7:-1]
+    elif not config.num and config.cat :
+        # X_train = X_train
+        # X_test = X_test
+        X_train = X_train[:,:,:7]
+        X_test = X_test[:,:,:7]    
 
-    elif config.cat:
-        X_train = X_train[:,:,0:7]
-        X_test = X_test[:,:,0:7]    
+    if config.task in ['mort', 'phen']:
 
-    Y_train = train[0][:, 0, -n_labels:]
-    Y_test = test[0][:, 0, -n_labels:]    
+        Y_train = train[0][:, 0, -n_labels:]
+        Y_test = test[0][:, 0, -n_labels:] 
+    else:
+        Y_train = train[0][:, :, -n_labels:]
+        Y_test = test[0][:, :, -n_labels:]
+        
     X_train = list(zip(X_train, nrows_train))
 
     if val:
