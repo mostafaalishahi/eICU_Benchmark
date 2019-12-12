@@ -84,12 +84,24 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
     optim = metrics.get_optimizer(lr=config.lr)
 
     if config.task == 'mort':
+        try:
+            model = multi_gpu_model(model)
+        except:
+            pass
         model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
     
     elif config.task == 'rlos':
+         try:
+            model = multi_gpu_model(model)
+        except:
+            pass
         model.compile(loss='mean_squared_error', optimizer=optim, metrics=['mse'])
     
     elif config.task in ['phen', 'dec']:
+         try:
+            model = multi_gpu_model(model)
+        except:
+            pass
         model.compile(loss="binary_crossentropy" ,optimizer=optim, metrics=[metrics.f1,'accuracy'])
     
     else:
@@ -150,12 +162,24 @@ def baseline_network(config, input_size, output_dim=1, activation='sigmoid'):
     optim = metrics.get_optimizer(lr=config.lr)
 
     if config.task == 'mort':
+        try:
+            model = multi_gpu_model(model)
+        except:
+            pass
         model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
     
     elif config.task == 'rlos':
+        try:
+            model = multi_gpu_model(model)
+        except:
+            pass
         model.compile(loss='mean_squared_error', optimizer=optim, metrics=['mse'])
     
     elif config.task in ['phen', 'dec']:
+        try:
+            model = multi_gpu_model(model)
+        except:
+            pass
         model.compile(loss="binary_crossentropy" ,optimizer=optim, metrics=[metrics.f1,'accuracy'])
     
     else:

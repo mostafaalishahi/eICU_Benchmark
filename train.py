@@ -12,6 +12,8 @@ import sys
 from models.models import build_network as network
 import tensorflow as tf
 import os
+from keras.utils import multi_gpu_model
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 if not sys.warnoptions:

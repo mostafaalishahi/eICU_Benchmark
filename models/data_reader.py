@@ -4,13 +4,11 @@ import random
 def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0), train=True, phen=True):
         if train:
             while True:
-                # data = list(zip(X, Y))
                 all_index = list(range(X.shape[0]))
                 while len(all_index) > (batch_size*0.2):
                     idx = rng.choice(all_index, int(batch_size))
                     x_batch = X[idx]
                     y_batch = Y[idx]
-                    # data_selection = data[idx]
                     idx = list(set(all_index) - set(idx))
                     data_selection = list(zip(x_batch, y_batch))
                     random.shuffle(data_selection)
@@ -67,12 +65,8 @@ def read_data(config, train, test, val=False):
     if config.num and not config.cat:
         X_train = X_train
         X_test = X_test
-        # X_train = X_train[:,:,7:] 
-        # X_test = X_test[:,:,7:]
 
     elif not config.num and config.cat :
-        # X_train = X_train
-        # X_test = X_test
         X_train = X_train[:,:,:7]
         X_test = X_test[:,:,:7]    
 
