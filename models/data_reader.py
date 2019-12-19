@@ -1,7 +1,7 @@
 import numpy as np
 import random
 
-def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0), train=True, phen=True):
+def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0), train=True, phen=True,base=True):
         if train:
             while True:
                 all_index = list(range(X.shape[0]))
@@ -16,10 +16,12 @@ def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0),
 
                     x_batch = np.array(x_batch)
                     y_batch = np.array(y_batch)
-
                     if not phen:
                         y_batch = np.expand_dims(y_batch, axis=-1)
-                    
+                    # if base:
+                    #     if config.task =='dec':
+                    #         y_batch = np.squeeze(y_batch,axis=-1)
+
                     if config.num and config.cat:
                         x_nc = x_batch[:, :, 7:]
                         x_cat = x_batch[:,:, :7].astype(int)
@@ -29,6 +31,14 @@ def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0),
                             x_cat = one_hot
                         yield [x_nc, x_cat], y_batch
                     
+                    elif not config.num and config.cat:
+                        # x_nc = x_batch[:, :, 7:]
+                        x_cat = x_batch[:,:, :7].astype(int)
+                        if config.ohe:
+                            one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                            one_hot = (np.eye(429)[x_cat].sum(2) > 0).astype(int)
+                            x_cat = one_hot
+                        yield x_cat, y_batch
                     else:
                         yield x_batch, y_batch
                                 
@@ -53,7 +63,7 @@ def batch_generator(config, X, Y, batch_size=1024, rng=np.random.RandomState(0),
 def read_data(config, train, test, val=False):
     nrows_train = train[1]
     nrows_test = test[1]
-
+    BASE = True
     if config.task == 'phen':
         n_labels = len(config.col_phe)
     elif config.task in ['dec', 'mort', 'rlos']:
@@ -66,7 +76,7 @@ def read_data(config, train, test, val=False):
         X_train = X_train
         X_test = X_test
 
-    elif not config.num and config.cat :
+    elif not config.num and config.cat:
         X_train = X_train[:,:,:7]
         X_test = X_test[:,:,:7]    
 
@@ -89,12 +99,12 @@ def read_data(config, train, test, val=False):
     Y_test = Y_test.astype(int)
     X_train = np.array(X_train)
 
-    train_gen = batch_generator(config, X_train, Y_train, batch_size=config.batch_size, train=True, phen=True)
+    train_gen = batch_generator(config, X_train, Y_train, batch_size=config.batch_size, train=True, phen=True,base=BASE)
     train_steps = np.ceil(len(X_train)/config.batch_size)
 
     if val:
         Y_val = Y_val.astype(int)        
-        val_gen   = batch_generator(X_val, Y_val, batch_size=config.batch_size, train=False,phen=True)
+        val_gen   = batch_generator(config, X_val, Y_val, batch_size=config.batch_size, train=False,phen=True,base=BASE)
         val_steps = np.ceil(len(X_val)/config.batch_size)
 
     max_time_step = nrows_test

@@ -1,8 +1,3 @@
-
-# parser = argparse.ArgumentParser(description="Create data for decompensation")
-# parser.add_argument('--root_dir', type=str, help="Path to root folder containing all the patietns data")
-# args, _ = parser.parse_known_args()
-
 class Config():
     def __init__(self, args):
         self.seed = 36
@@ -49,4 +44,3 @@ class Config():
                     "lipid disorder", "Coronary athe", "DM without complication",
                     "Cardiac dysrhythmias",
                     "CHF", "DM with complications", "Other liver diseases", "Conduction disorders"]
-     

@@ -38,12 +38,13 @@ def data_extraction_phenotyping(args):
                 'DM without complication']
 
     codes = json.load(open('phen_code.json'))
-    all_df = utils.embedding(args.root_dir)
-    all_df = utils.filter_phenotyping_data(all_df)
+    all_df = utils.embedding(args.root_dir) #Done
+    all_df = utils.filter_phenotyping_data(all_df) #Done
+
     diag = utils.read_diagnosis_table(args.eicu_dir)
     diag = utils.diag_labels(diag)
-
     diag.dropna(how='all', subset=label_pheno, inplace=True)
+
     stay_diag = set(diag['patientunitstayid'].unique())
     stay_all = set(all_df.patientunitstayid.unique())
     stay_intersection = stay_all.intersection(stay_diag)
@@ -58,15 +59,11 @@ def data_extraction_phenotyping(args):
     all_pheno = all_df[all_df["patientunitstayid"].isin(stay_pheno)]
     all_pheno = all_pheno[all_pheno["itemoffset"] > 0]  # remove records before unit admission
     all_pheno = all_pheno[all_pheno["RLOS"] >= 0]  # remove records after unit discharge
-    
     label = label[diag_ord_col]
     all_pheno_label = label[label.patientunitstayid.isin(list(all_pheno.patientunitstayid.unique()))]
     return all_pheno, all_pheno_label
 
-    # df_data, df_label = data_extraction_phenotyping(config)
-    # df_data = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
-    # return df_data
-    
+
 
 def main():
     config = Config()

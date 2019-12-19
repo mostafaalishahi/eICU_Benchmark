@@ -194,9 +194,11 @@ def prepare_categorical_variables(root_dir):
     'hospitaldischargestatus','unitdischargeoffset',
     'unitdischargestatus']
     all_df = pd.read_csv(os.path.join(root_dir, 'all_data.csv'))
-    all_df = all_df[all_df.gender != 0]
-    all_df = all_df[all_df.hospitaldischargestatus != 2]
+  
+    all_df = all_df[all_df.gender != 0] #unknown gender is dropped
+    all_df = all_df[all_df.hospitaldischargestatus != 2] #unknown hospital discharge is dropped
     all_df = all_df[columns_ord]
+
     all_df.apacheadmissiondx = all_df.apacheadmissiondx.astype(int)
     all_df.ethnicity = all_df.ethnicity.astype(int)
     all_df.gender = all_df.gender.astype(int)

@@ -12,7 +12,6 @@ from config import Config
 def data_extraction_rlos(args):
     all_df = utils.embedding(args.root_dir)
     all_los = utils.filter_rlos_data(all_df)
-
     return all_los
 
 

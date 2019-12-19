@@ -8,6 +8,7 @@ import argparse
 from data_extraction import utils
 from config import Config
 
+import pandas as pd
 def data_extraction_mortality(args):
     time_window = 48
     all_df = utils.embedding(args.root_dir)

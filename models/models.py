@@ -40,8 +40,7 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
     elif config.cat:
         if config.ohe:
             input1 = Input(shape=(input_size, config.n_cat_class))
-            inp = Reshape((int(input1.shape[1]),int(input1.shape[2]*input1.shape[3])))(input1)
-        
+            inp = input1       
         else:
             input1 = Input(shape=(input_size, 7))
             x1 = Embedding(config.n_cat_class, config.embedding_dim)(input1)
@@ -84,24 +83,12 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
     optim = metrics.get_optimizer(lr=config.lr)
 
     if config.task == 'mort':
-        try:
-            model = multi_gpu_model(model)
-        except:
-            pass
         model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
-    
+        # model.summary()
     elif config.task == 'rlos':
-         try:
-            model = multi_gpu_model(model)
-        except:
-            pass
         model.compile(loss='mean_squared_error', optimizer=optim, metrics=['mse'])
     
     elif config.task in ['phen', 'dec']:
-         try:
-            model = multi_gpu_model(model)
-        except:
-            pass
         model.compile(loss="binary_crossentropy" ,optimizer=optim, metrics=[metrics.f1,'accuracy'])
     
     else:
@@ -111,78 +98,97 @@ def build_network(config, input_size, output_dim=1, activation='sigmoid'):
     return model
 
 
+
+
+
+
 def baseline_network(config, input_size, output_dim=1, activation='sigmoid'):
+
+
     if config.num and config.cat:
         input1 = Input(shape=(input_size, 13))
-        
         if config.ohe:
             input2 = Input(shape=(input_size, config.n_cat_class))
             inp = keras.layers.Concatenate(axis=-1)([input1, input2])
+            if config.task in ['mort','phen']: #added
+                inp = Reshape((int(input2.shape[1])*int(input2.shape[2]+input1.shape[2]),))(inp) #added
+            #added
         
         else:
             input2 = Input(shape=(input_size, 7))
             x2 = Embedding(config.n_cat_class, config.embedding_dim)(input2)
             x2 = Reshape((int(x2.shape[1]),int(x2.shape[2]*x2.shape[3])))(x2)
             inp = keras.layers.Concatenate(axis=-1)([input1, x2])
-    
-    elif config.num:
+            if config.task in ['mort','phen']: #added
+                inp = Reshape((int(x2.shape[1])*int(x2.shape[2]+input1.shape[2]),))(inp)#added
+
+
+    elif config.num and not config.cat:
         input1 = Input(shape=(input_size, 13))
-        inp = input1 
-    
-    elif config.cat:
+        inp = input1
+
+        #added
+        if config.task in ['mort','phen']: #added
+            inp = Reshape((int(input1.shape[1])*int(input1.shape[2]),))(input1)
+        #added
+
+    elif config.cat and not config.num:
         if config.ohe:
             input1 = Input(shape=(input_size, config.n_cat_class))
-            inp = Reshape((int(input1.shape[1]),int(input1.shape[2]*input1.shape[3])))(input1)
-        
+            # inp = Reshape((int(input1.shape[1]),int(input1.shape[2]*input1.shape[3])))(input1)
+            # inp = Reshape((int(input1.shape[1])*int(input1.shape[2]),))(input1)
+            inp = input1
+
+            #added
+            if config.task in ['mort','phen']: #added
+                inp = Reshape((int(input1.shape[1])*int(input1.shape[2]),))(input1)
+            #added
+
+
         else:
             input1 = Input(shape=(input_size, 7))
             x1 = Embedding(config.n_cat_class, config.embedding_dim)(input1)
-            inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3])))(x1)
+            inp = Reshape((int(x1.shape[1]),int(x1.shape[2]*x1.shape[3]),))(x1)
+            # inp = Reshape((int(input1.shape[1])*int(input1.shape[2]),))(input1)
+            #added
+            if config.task in ['mort','phen']: #added
+                # inp = Reshape((int(x1.shape[1])*int(x1.shape[2]),))(x1)
+                inp = Reshape((int(inp.shape[1])*int(inp.shape[2]),))(inp)
 
     mask = Masking(mask_value=0., name="maski")(inp)
 
+
     if config.ann:
         hidden = keras.layers.Dense(64,activation='relu')(mask)
-
+    elif not config.ann:
+        hidden = mask
     if config.task in ['rlos', 'dec']:
         out = TimeDistributed(Dense(output_dim, activation=activation))(hidden)
-    
+
     elif config.task in ['mort', 'phen']:
         out = Dense(output_dim, activation=activation)(hidden)
     
     else:
         print('Invalid task type.')
         exit() 
+    optim = metrics.get_optimizer(lr=config.lr)
 
     if config.num and config.cat:
         model = keras.models.Model(inputs=[input1, input2], outputs=out)
     else:
         model = keras.models.Model(inputs=input1, outputs=out)
 
-    optim = metrics.get_optimizer(lr=config.lr)
 
     if config.task == 'mort':
-        try:
-            model = multi_gpu_model(model)
-        except:
-            pass
         model.compile(loss="binary_crossentropy", optimizer=optim ,metrics=[metrics.f1,metrics.sensitivity, metrics.specificity, 'accuracy'])
-    
     elif config.task == 'rlos':
-        try:
-            model = multi_gpu_model(model)
-        except:
-            pass
         model.compile(loss='mean_squared_error', optimizer=optim, metrics=['mse'])
     
     elif config.task in ['phen', 'dec']:
-        try:
-            model = multi_gpu_model(model)
-        except:
-            pass
         model.compile(loss="binary_crossentropy" ,optimizer=optim, metrics=[metrics.f1,'accuracy'])
     
     else:
         print('Invalid task name')
-
+        exit()
+    # print(model.summary())
     return model

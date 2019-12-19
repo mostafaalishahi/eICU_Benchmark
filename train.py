@@ -10,7 +10,6 @@ from scipy import interp
 from models import evaluation
 import sys
 from models.models import build_network as network
-import tensorflow as tf
 import os
 from keras.utils import multi_gpu_model
 
@@ -53,9 +52,27 @@ def train_dec(config):
 
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
-        
         if config.num and config.cat:
-            probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+            if config.ohe:
+                x_cat = X_test[:, :, :7].astype(int)
+                x_nc = X_test[:,:,7:]
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_dec = model.predict([x_nc, x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_dec = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.cat:
+            if config.ohe:
+                x_cat = X_test[:, :, :].astype(int)
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_dec = model.predict([x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_dec = model.predict([X_test])
         else:
             probas_dec = model.predict([X_test])
 
@@ -121,7 +138,8 @@ def train_mort(config):
     all_idx = np.array(list(df_data['patientunitstayid'].unique()))
     skf = KFold(n_splits=config.k_fold)
 
-    for train_idx, test_idx in skf.split(all_idx):
+    for fold_id, (train_idx, test_idx) in enumerate(skf.split(all_idx)):
+        print('Running Fold {}...'.format(fold_id+1))
         train_idx = all_idx[train_idx]  
         test_idx = all_idx[test_idx]
 
@@ -137,14 +155,24 @@ def train_mort(config):
             if config.ohe:
                 x_cat = X_test[:, :, :7].astype(int)
                 x_nc = X_test[:,:,7:]
+                print("Please wait, One-hot encoding ...")
                 one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
                 x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
-                print("Please wait, One-hot encoding ...")
                 probas_mort = model.predict([x_nc, x_cat])
                 #todo Replace np.eye with faster function
             else:
                 probas_mort = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        else :
+        elif config.cat:
+            if config.ohe:
+                x_cat = X_test[:, :, :].astype(int)
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_mort = model.predict([x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_mort = model.predict([X_test])
+        else:
             probas_mort = model.predict([X_test])
 
         
@@ -195,7 +223,8 @@ def train_phen(config):
     phen_auc  = []
     phen_aucs = []
     skf = KFold(n_splits=config.k_fold)
-    for train_idx, test_idx in skf.split(all_idx):
+    for fold_id, (train_idx, test_idx) in enumerate(skf.split(all_idx)):
+        print('Running Fold {}...'.format(fold_id+1))
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
@@ -205,11 +234,31 @@ def train_phen(config):
         model = network(config, 200, output_dim=25, activation='sigmoid')
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
+    
 
         if config.num and config.cat:
-            probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        else :
-            probas_phen = model.predict([X_test])
+            if config.ohe:
+                x_cat = X_test[:, :, :7].astype(int)
+                x_nc = X_test[:,:,7:]
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_phen = model.predict([x_nc, x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_phen = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.cat:
+            if config.ohe:
+                x_cat = X_test[:, :, :].astype(int)
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_phen = model.predict([x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_phen = model.predict([X_test])
+        else:
+            probas_phen = model.predict([X_test])   
 
         phen_auc = evaluation.multi_label_metrics(Y_test,probas_phen)
         phen_aucs.append(phen_auc)
@@ -231,7 +280,8 @@ def train_rlos(config):
     mses = []
     maes = []
     skf = KFold(n_splits=config.k_fold)
-    for train_idx, test_idx in skf.split(all_idx):
+    for fold_id, (train_idx, test_idx) in enumerate(skf.split(all_idx)):
+        print('Running Fold {}...'.format(fold_id+1))
         train_idx = all_idx[train_idx]
         test_idx = all_idx[test_idx]
 
@@ -243,10 +293,29 @@ def train_rlos(config):
         history = model.fit_generator(train_gen,steps_per_epoch=25,
                             epochs=config.epochs,verbose=1,shuffle=True)
         if config.num and config.cat:
-            probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
-        else :
-            probas_rlos = model.predict([X_test])
-            
+            if config.ohe:
+                x_cat = X_test[:, :, :7].astype(int)
+                x_nc = X_test[:,:,7:]
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_rlos = model.predict([x_nc, x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_rlos = model.predict([X_test[:,:,7:],X_test[:,:,:7]])
+        elif config.cat:
+            if config.ohe:
+                x_cat = X_test[:, :, :].astype(int)
+                print("Please wait, One-hot encoding ...")
+                one_hot = np.zeros((x_cat.shape[0], x_cat.shape[1], 429), dtype=np.int)
+                x_cat = (np.eye(config.n_cat_class)[x_cat].sum(2) > 0).astype(int)
+                probas_rlos = model.predict([x_cat])
+                #todo Replace np.eye with faster function
+            else:
+                probas_rlos = model.predict([X_test])
+        else:
+            probas_rlos = model.predict([X_test])   
+
         r2,mse,mae = evaluation.regression_metrics(Y_test,probas_rlos,max_time_step_test)
         r2s.append(r2)
         mses.append(mse)
@@ -271,7 +340,7 @@ def train_rlos(config):
          'MSE mean':meanmses,
          'MSE std':stdmses,
          'MAE mean':meanmaes,
-         'MAE std':meanmaes}
+         'MAE std':stdmaes}
 
 
 def main(config):
@@ -293,7 +362,7 @@ def main(config):
     else:
         print('Invalid task name')
 
-    output_file_name = 'result_{}_{}_{}_{}_{}_{}.json'.format(config.task, str(config.num), str(config.cat), str(config.ann), str(config.ohe), config.mort_window)
+    output_file_name = 'LSTM_{}_{}_{}_{}_{}_{}.json'.format(config.task, str(config.num), str(config.cat), str(config.ann), str(config.ohe), config.mort_window)
     with open(output_file_name, 'w') as f:
         f.write(str(result))
 

@@ -1,15 +1,15 @@
 from config import Config
-from train import main
+from baseline import main
 import os
 
 from keras import backend as K
 
 
-TASK = ['mort', 'rlos', 'dec', 'phen']
-NUM = [True, False]
-CAT = [True, False]
-OHE = [True, False]
-ANN = [True, False]
+TASK = ['mort']#,'phen','dec','rlos']#['dec','rlos'] is working
+NUM = [True]
+CAT = [True]  
+OHE = [False]
+ANN = [True,False] #False
 
 class build_args():
     pass
@@ -28,7 +28,7 @@ for t in TASK:
                     args.ohe = oh
                     # args.ohe = False
                     # args.ann = False
-                    args.mort_window = 24
+                    args.mort_window = 48
                     config = Config(args)
                     print('{}_num_{}_cat_{}_ann_{}_ohe_{} Started'.format(t, str(nu), str(ca),str(an),str(oh)))
                     if not nu and not ca:

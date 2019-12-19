@@ -1,3 +1,5 @@
 *.pyc
 To-Do*
 *.json
+*.csv
+*.pyc
