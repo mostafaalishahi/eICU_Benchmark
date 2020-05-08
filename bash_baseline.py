@@ -5,11 +5,12 @@ import os
 from keras import backend as K
 
 
-TASK = ['mort']#,'phen','dec','rlos']#['dec','rlos'] is working
-NUM = [True]
-CAT = [True]  
+TASK = ['mort', 'rlos', 'phen','dec'] 
+NUM = [True,False]
+CAT = [True,False]
 OHE = [False]
-ANN = [True,False] #False
+ANN = [True,False]
+
 
 class build_args():
     pass

@@ -3,8 +3,8 @@ class Config():
         self.seed = 36
 
         # data dir
-        self.root_dir = '/media/ehealth/HDD/ICU/DataSets/eICU/Benchmark/pyscript/data1'
-        self.eicu_dir = '/media/ehealth/HDD/ICU/DataSets/eICU'
+        self.root_dir = 'The folder which you extracted and saved all the data (e.g. all_data.csv)'
+        self.eicu_dir = 'The path into your local eICU dataset '
 
         # task details
         self.task = args.task #['phen', 'dec', 'mort', 'rlos']

@@ -5,11 +5,11 @@ import os
 from keras import backend as K
 
 
-TASK = ['rlos']#, 'phen']#,'phen','rlos','dec']#['mort', 'rlos', 'phen','dec'] 
-NUM = [True]
-CAT = [True]
-OHE = [False]
-ANN = [False]
+TASK = ['mort', 'rlos', 'phen','dec'] 
+NUM = [True,False]
+CAT = [True,False]
+OHE = [True,False]
+ANN = [True,False]
 
 class build_args():
     pass
@@ -26,8 +26,6 @@ for t in TASK:
                     args.cat = ca
                     args.ann = an
                     args.ohe = oh
-                    # args.ohe = False
-                    # args.ann = False
                     args.mort_window = 48
                     config = Config(args)
                     print('{}_num_{}_cat_{}_ohe_{} Started'.format(t, str(nu), str(ca),str(oh)))
