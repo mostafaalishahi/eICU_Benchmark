@@ -18,7 +18,7 @@ def data_extraction_root(args):
     utils.break_up_stays_by_unit_stay(patients, args.output_dir,stayid=stay_id, verbose=1)
     del patients
 
-    print("reading lab table")
+    # print("reading lab table")
     lab = utils.read_lab_table(args.eicu_dir)
     utils.break_up_lab_by_unit_stay(lab, args.output_dir, stayid=stay_id, verbose=1)
     del lab
@@ -30,6 +30,7 @@ def data_extraction_root(args):
 
     #Write the timeseries data into folders
     utils.extract_time_series_from_subject(args.output_dir)
+    
     utils.delete_wo_timeseries(args.output_dir)
     #Write all the data into one dataframe
     utils.all_df_into_one_df(args.output_dir)

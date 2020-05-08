@@ -8,7 +8,7 @@ First of all be sure to cite [eICU paper!](https://www.nature.com/articles/sdata
 
 If you use this code or these benchmarks in your research, please cite the following publication.
 > @misc{sheikhalishahi2019benchmarking,
-    title={Benchmarking machine learning models on eICU critical care dataset},
+    title={Benchmarking machine learning models on multi-centre eICU critical care dataset},
     author={Seyedmostafa Sheikhalishahi and Vevake Balaraman and Venet Osmani},
     year={2019},
     eprint={1910.00964},
@@ -20,7 +20,7 @@ If you use this code or these benchmarks in your research, please cite the follo
 
 
 ## Requirements
-You must have the csv files of eICU on your local machine
+You must have the csv files of eICU dataset on your local machine
 ### Packages
 * numpy==1.15.0
 * scipy==1.2.0
@@ -68,7 +68,5 @@ The experiments are divided into two scripts. In the both scripts there are argu
 The baseline experiments can be ran by running python baseline.py --args
 
 The LSTM experiments can be ran by running python train.py --args
-
-## Motivation
 
 

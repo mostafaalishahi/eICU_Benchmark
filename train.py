@@ -219,6 +219,7 @@ def train_phen(config):
     from data_extraction.data_extraction_phenotyping import data_extraction_phenotyping
     df_data, df_label = data_extraction_phenotyping(config)
     df = df_data.merge(df_label.drop(columns=['itemoffset']), on='patientunitstayid')
+    import pdb;pdb.set_trace()
     all_idx = np.array(list(df['patientunitstayid'].unique()))   
     phen_auc  = []
     phen_aucs = []

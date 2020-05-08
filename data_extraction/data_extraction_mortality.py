@@ -10,7 +10,7 @@ from config import Config
 
 import pandas as pd
 def data_extraction_mortality(args):
-    time_window = 48
+    time_window = config.time_window
     all_df = utils.embedding(args.root_dir)
     all_mort = utils.filter_mortality_data(all_df)
     all_mort = all_mort[all_mort['itemoffset']<=time_window]
