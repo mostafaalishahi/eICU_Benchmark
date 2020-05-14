@@ -15,7 +15,6 @@ If you use this code or these benchmarks in your research, please cite the follo
     primaryClass={cs.LG}
 }
 
-
 Be sure to cite [eICU paper!](https://www.nature.com/articles/sdata2018178)
 
 
