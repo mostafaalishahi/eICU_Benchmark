@@ -306,7 +306,7 @@ def extract_time_series_from_subject(t_path):
         except:
             continue
     print("Number of patients with more than 15 and less than 200 records:",filter_15_200)
-    print('Convereted to time series')
+    print('Converted to time series')
 
 
 ##Convert to time-series
